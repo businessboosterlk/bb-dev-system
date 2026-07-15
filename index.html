@@ -348,6 +348,55 @@ table.tbl{width:100%;border-collapse:collapse;min-width:560px}
 .st-row .det{color:var(--text-3);font-size:10.5px;display:block}
 .st-foot{padding:13px 18px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
 
+/* ---------- hero (the Next Up card) ---------- */
+.hero-wrap{display:flex;align-items:stretch;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+.hero-greet{flex:1;min-width:220px;display:flex;flex-direction:column;justify-content:center}
+.hero-hi{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--text-3)}
+.hero-name{font-family:'Poppins',sans-serif;font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin:4px 0 2px}
+.hero-date{font-size:12px;color:var(--text-2)}
+.hero-card{position:relative;overflow:hidden;flex:1.3;min-width:min(100%,300px);border-radius:var(--r);padding:18px 20px;color:#fff;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 12px 34px var(--accent-glow);cursor:pointer;
+  transition:transform var(--t-fast) var(--ease),box-shadow var(--t) var(--ease)}
+.hero-card:hover{transform:translateY(-2px);box-shadow:0 16px 42px var(--accent-glow)}
+.hero-card::before{content:"";position:absolute;inset:0;
+  background:radial-gradient(420px 180px at 85% -20%,rgba(255,255,255,.30),transparent 60%),radial-gradient(300px 160px at -10% 120%,rgba(0,0,0,.28),transparent 60%)}
+.hero-card>*{position:relative}
+.hero-lbl{font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.85}
+.hero-title{font-family:'Poppins',sans-serif;font-size:19px;font-weight:800;letter-spacing:-.01em;line-height:1.25;margin:6px 0 4px;word-break:break-word}
+.hero-meta{font-size:11.5px;opacity:.88;display:flex;gap:12px;flex-wrap:wrap}
+.hero-cta{margin-top:12px}
+.btn-light{display:inline-flex;align-items:center;gap:7px;color:#fff;font-weight:700;font-size:12px;padding:8px 14px;border-radius:var(--r-sm);
+  background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.30);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background var(--t-fast)}
+.btn-light:hover{background:rgba(255,255,255,.24)}
+.btn-light svg{width:14px;height:14px}
+/* stat icon tiles */
+.stat-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.kt{width:32px;height:32px;border-radius:9px;background:var(--surface-2);display:grid;place-items:center;color:var(--text-2);flex-shrink:0}
+.kt svg{width:15px;height:15px}
+/* card stage progress */
+.wc-prog{height:3px;border-radius:99px;background:var(--surface-3);overflow:hidden;margin-top:9px}
+.wc-prog i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+.wc-prog i.full{background:var(--green)}
+/* command palette */
+.cmdk-ov{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  display:flex;justify-content:center;align-items:flex-start;padding:12vh 14px 20px;animation:fadeIn .15s}
+.cmdk{width:min(560px,100%);background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r);
+  box-shadow:var(--shadow-lg);overflow:hidden;animation:slideUp .18s var(--ease)}
+.cmdk-in{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)}
+.cmdk-in svg{width:16px;height:16px;color:var(--text-3)}
+.cmdk-in input{flex:1;background:none;border:none;outline:none;font-size:14px;color:var(--text);min-width:0}
+.cmdk-list{max-height:46vh;overflow-y:auto;padding:8px}
+.cmdk-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:var(--r-md);cursor:pointer;font-size:12.5px;font-weight:600;color:var(--text-2)}
+.cmdk-item svg{width:15px;height:15px;flex-shrink:0}
+.cmdk-item span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmdk-item.sel,.cmdk-item:hover{background:var(--accent-soft);color:var(--accent)}
+.cmdk-item small{margin-left:auto;font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;font-weight:700;flex-shrink:0}
+.cmdk-hint{padding:9px 16px;border-top:1px solid var(--border);font-size:10px;color:var(--text-3);display:flex;gap:14px;flex-wrap:wrap}
+kbd{background:var(--surface-2);border:1px solid var(--border-strong);border-radius:5px;padding:1px 6px;font-family:inherit;font-size:9.5px}
+/* login glow */
+#loginScreen::before{content:"";position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(640px 340px at 50% 10%,var(--accent-soft),transparent 70%)}
+
 /* ---------- print ---------- */
 @media print{.sidebar,.topbar,.nav-mask{display:none!important}.main{margin:0!important}}
 </style>
@@ -392,6 +441,7 @@ table.tbl{width:100%;border-collapse:collapse;min-width:560px}
       <div class="tb-title" id="tbTitle">Today</div>
       <div class="tb-right">
         <span class="mode-chip" id="modeChip"></span>
+        <button class="tb-btn" onclick="openCmdk()" title="Search (Ctrl+K)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
         <button class="tb-btn" id="bellBtn" onclick="openAlerts()" title="Alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="tb-dot" id="bellDot" hidden></span></button>
         <button class="tb-btn" onclick="toggleTheme()" title="Theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
       </div>
@@ -564,7 +614,9 @@ const I={
  wrench:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg>',
  sun:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></svg>',
  up:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
- down:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>'
+ down:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+ search:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
+ arrow:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'
 };
 
 /* ---------- date/format helpers ---------- */
@@ -897,6 +949,7 @@ function go(pg){
  document.getElementById('tbTitle').textContent=TITLES[pg];
  healPage(pg);
  try{if(RENDERERS[pg])RENDERERS[pg]();}catch(e){pageErrorBoundary(pg,e);}
+ animateCounts(document.getElementById('page-'+pg));
  window.scrollTo(0,0);
 }
 
@@ -1000,7 +1053,11 @@ function cardHtml(it,showType){
   '<div class="wc-meta"><span class="wc-client">'+esc(clientName(it.client_id))+'</span>'+
   (it.deadline?'<span class="'+(late?'late':'')+'">'+I.cal+' '+fmtDate(it.deadline)+'</span>':'')+
   (it.est_hours?'<span>'+I.clock+' '+it.est_hours+'h</span>':'')+
-  '</div></div>';
+  '</div>'+
+  (function(){const st=gearset(it.work_type).stages;const idx=Math.max(0,st.findIndex(s=>s.key===it.stage));
+   const pct=Math.round(((idx+1)/st.length)*100);
+   return '<div class="wc-prog"><i class="'+(isTerminal(it)?'full':'')+'" style="width:'+pct+'%"></i></div>';})()+
+  '</div>';
 }
 
 /* ---------- the board ---------- */
@@ -1284,13 +1341,30 @@ function renderToday(){
    (it.blocked_reason?' &middot; '+esc((BLOCK_REASONS.find(b=>b.key===it.blocked_reason)||{}).label||''):'')+'</small></div>'+
    wtBadge(it.work_type)+'</div>';
  })+'</div>':'<div class="empty-state">'+I.check+'<div class="empty-title">'+esc(empty)+'</div></div>';
+ const nba=nextBestAction();
+ const attn=computeAttention();
+ const hour=MODE==='demo'?9:new Date().getHours();
+ const greet=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
+ const dayName=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(T+'T12:00:00').getDay()];
+ const statCard=(lbl,val,cls,note,icon)=>'<div class="stat-card"><div class="stat-top"><div><div class="stat-lbl">'+lbl+'</div><div class="stat-val '+cls+'">'+val+'</div></div><span class="kt">'+(I[icon]||'')+'</span></div><div class="stat-note">'+note+'</div></div>';
  el.innerHTML=
- '<div class="stat-grid">'+
- '<div class="stat-card"><div class="stat-lbl">Open work</div><div class="stat-val accent">'+act.length+'</div><div class="stat-note">across all four types</div></div>'+
- '<div class="stat-card"><div class="stat-lbl">Fix first</div><div class="stat-val '+(fixFirst.length?'red':'green')+'">'+fixFirst.length+'</div><div class="stat-note">live, critical or blocking</div></div>'+
- '<div class="stat-card"><div class="stat-lbl">Overdue</div><div class="stat-val '+(overdue.length?'amber':'green')+'">'+overdue.length+'</div><div class="stat-note">past deadline</div></div>'+
- '<div class="stat-card"><div class="stat-lbl">Blocked on client</div><div class="stat-val '+(blocked.length?'amber':'green')+'">'+blocked.length+'</div><div class="stat-note">access, content, approval</div></div>'+
+ '<div class="hero-wrap">'+
+ '<div class="hero-greet"><div class="hero-hi">'+greet+'</div><div class="hero-name">'+esc(CURRENT?CURRENT.name:'')+'</div><div class="hero-date">'+dayName+', '+fmtDate(T)+(MODE==='demo'?' &middot; demo week':'')+'</div></div>'+
+ (nba?'<div class="hero-card" onclick="openItem('+nba.id+')"><div class="hero-lbl">Next up</div><div class="hero-title">'+esc(nba.title)+'</div>'+
+  '<div class="hero-meta"><span>'+esc(clientName(nba.client_id))+'</span><span>'+esc(stageLabel(nba))+'</span>'+(nba.deadline?'<span>due '+esc(fmtDate(nba.deadline))+'</span>':'')+'</div>'+
+  '<div class="hero-cta"><span class="btn-light">'+I.arrow+' Open it</span></div></div>'
+  :'<div class="hero-card" onclick="openItemForm()"><div class="hero-lbl">Next up</div><div class="hero-title">All clear. Queue the next build.</div><div class="hero-cta"><span class="btn-light">'+I.plus+' New work</span></div></div>')+
  '</div>'+
+ '<div class="stat-grid">'+
+ statCard('Open work',act.length,'accent','across all four types','box')+
+ statCard('Fix first',fixFirst.length,fixFirst.length?'red':'green','live, critical or blocking','bug')+
+ statCard('Overdue',overdue.length,overdue.length?'amber':'green','past deadline','clock')+
+ statCard('Blocked on client',blocked.length,blocked.length?'amber':'green','access, content, approval','alert')+
+ '</div>'+
+ (attn.length?'<div class="card" style="margin-bottom:16px"><div class="card-h"><h3>Attention</h3><span class="sp"><span class="badge '+(attn.some(a=>a.sev==='red')?'red':'amber')+'">'+attn.length+'</span></span></div><div class="card-b"><div class="hlist">'+
+  mapSafe(attn.slice(0,6),a=>'<div class="hrow" style="cursor:pointer" onclick="'+a.fn+'"><span class="health-dot '+a.sev+'"></span><div class="grow"><b>'+esc(a.msg)+'</b></div></div>')+
+  (attn.length>6?'<div class="empty-sub" style="padding-top:8px">'+(attn.length-6)+' more, the sentinel keeps watching</div>':'')+
+  '</div></div></div>':'')+
  '<div class="two-col">'+
  '<div class="card"><div class="card-h"><h3>Fix first</h3><span class="sp"><span class="badge red">'+fixFirst.length+'</span></span></div><div class="card-b">'+list(fixFirst,'Nothing on fire')+'</div></div>'+
  '<div class="card"><div class="card-h"><h3>Due today + overdue</h3></div><div class="card-b">'+list(overdue.concat(dueToday),'Nothing due today')+'</div></div>'+
@@ -1812,6 +1886,105 @@ function updateBell(){const d=document.getElementById('bellDot');if(d)d.hidden=!
 const RENDERERS={today:renderToday,board:renderBoard,clients:renderClients,keyring:renderKeyring,care:renderCare,deploys:renderDeploys,reports:renderReports,system:renderSystem};
 
 /* ================================================================
+   SECTION 11.5 - SMART LAYER: next best action, the Dev Sentinel,
+   command palette (Ctrl+K), count-up numbers
+   ================================================================ */
+function nextBestAction(){
+ const T=todayISO();
+ const act=activeItems().filter(it=>!it.blocked_reason);
+ const fire=act.filter(it=>it.severity==='critical'||it.is_live||it.is_blocking)
+  .sort((a,b)=>((b.severity==='critical')-(a.severity==='critical'))||((b.is_live?1:0)-(a.is_live?1:0)));
+ if(fire.length)return fire[0];
+ const due=act.filter(it=>it.deadline&&it.deadline<=T).sort((a,b)=>String(a.deadline).localeCompare(String(b.deadline)));
+ if(due.length)return due[0];
+ const pr={urgent:0,high:1,normal:2,low:3};
+ const rest=act.slice().sort((a,b)=>(pr[a.priority]!==undefined?pr[a.priority]:2)-(pr[b.priority]!==undefined?pr[b.priority]:2));
+ return rest[0]||null;
+}
+/* THE DEV SENTINEL: derived signals, no AI, reads as intelligence */
+function computeAttention(){
+ const out=[];const T=todayISO();const now=new Date(nowISO());
+ activeItems().forEach(it=>{
+  if(it.blocked_reason)return;
+  const open=(DATA.hist||[]).find(h=>Number(h.item_id)===Number(it.id)&&!h.exited_at);
+  if(open&&open.entered_at){
+   const d=Math.floor((now-new Date(open.entered_at))/86400000);
+   const lim=metaOf(it)==='review'?3:5;
+   if(d>=lim)out.push({sev:d>=lim*2?'red':'amber',msg:'"'+it.title+'" has sat in '+stageLabel(it)+' for '+d+' days',fn:'openItem('+it.id+')'});
+  }
+ });
+ (DATA.props||[]).forEach(p=>propHealth(p).forEach(f=>out.push({sev:f.sev,msg:p.name+': '+f.msg,fn:'openPropForm('+p.id+')'})));
+ (DATA.recurring||[]).forEach(r=>{if(r.active&&r.next_due&&r.next_due<T)out.push({sev:'amber',msg:'Care overdue: '+r.title,fn:"go('care')"});});
+ (DATA.deploys||[]).forEach(dp=>{if(dp.status==='live'&&!dp.verified)out.push({sev:'amber',msg:'Deploy not eye-verified yet: '+dp.what_changed,fn:"go('deploys')"});});
+ const rank={red:0,amber:1};
+ out.sort((a,b)=>(rank[a.sev]!==undefined?rank[a.sev]:2)-(rank[b.sev]!==undefined?rank[b.sev]:2));
+ return out;
+}
+function animateCounts(root){
+ try{if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;}catch(e){}
+ (root||document).querySelectorAll('.stat-val').forEach(el=>{
+  const raw=el.textContent.trim();
+  if(!/^\d{1,4}$/.test(raw))return;
+  const n=parseInt(raw,10);if(!n)return;
+  const t0=performance.now();
+  const step=t=>{const p=Math.min(1,(t-t0)/450);el.textContent=String(Math.round(n*(p*(2-p))));if(p<1&&el.isConnected)requestAnimationFrame(step);};
+  requestAnimationFrame(step);
+ });
+}
+/* command palette */
+let CMDK={res:[],sel:0};
+function cmdkResults(q){
+ q=String(q||'').toLowerCase().trim();
+ const out=[];
+ const hit=s=>String(s||'').toLowerCase().indexOf(q)>-1;
+ NAV.forEach(n=>{if(!q||hit(n.label))out.push({label:n.label,kind:'Page',icon:n.icon,run:function(){go(n.key);}});});
+ [['New work','plus',function(){openItemForm();}],
+  ['Log deploy','rocket',function(){openDeployForm();}],
+  ['New recurring','wrench',function(){openRecurringForm();}],
+  ['Run self-test','shield',function(){runSelfTest({all:true});}]].forEach(a=>{if(!q||hit(a[0]))out.push({label:a[0],kind:'Action',icon:a[1],run:a[2]});});
+ if(q){
+  activeItems().forEach(it=>{if(hit(it.title))out.push({label:it.title,kind:gearset(it.work_type).label,icon:'box',run:function(){openItem(it.id);}});});
+  (DATA.clients||[]).forEach(c=>{if(hit(c.name))out.push({label:c.name,kind:'Client',icon:'user',run:function(){openClient(c.id);}});});
+  (DATA.props||[]).forEach(p=>{if(hit(p.name))out.push({label:p.name,kind:'Property',icon:'globe',run:function(){openPropForm(p.id);}});});
+ }
+ return out.slice(0,12);
+}
+function openCmdk(){
+ if(!CURRENT)return;
+ closeCmdk();
+ const d=document.createElement('div');d.id='cmdkRoot';
+ d.innerHTML='<div class="cmdk-ov" onclick="if(event.target===this)closeCmdk()"><div class="cmdk">'+
+ '<div class="cmdk-in">'+I.search+'<input id="cmdkInput" placeholder="Jump to work, clients, pages, actions..." oninput="cmdkType(this.value)" onkeydown="cmdkKey(event)" autocomplete="off"></div>'+
+ '<div class="cmdk-list" id="cmdkList"></div>'+
+ '<div class="cmdk-hint"><span><kbd>&uarr;</kbd> <kbd>&darr;</kbd> navigate</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></div>'+
+ '</div></div>';
+ document.body.appendChild(d);
+ cmdkType('');
+ const inp=document.getElementById('cmdkInput');if(inp)inp.focus();
+}
+function closeCmdk(){const d=document.getElementById('cmdkRoot');if(d)d.remove();}
+function cmdkType(v){CMDK.res=cmdkResults(v);CMDK.sel=0;renderCmdkList();}
+function renderCmdkList(){
+ const el=document.getElementById('cmdkList');if(!el)return;
+ el.innerHTML=CMDK.res.length?CMDK.res.map((r,i)=>'<div class="cmdk-item'+(i===CMDK.sel?' sel':'')+'" onclick="cmdkExec('+i+')">'+(I[r.icon]||I.box)+'<span>'+esc(r.label)+'</span><small>'+esc(r.kind)+'</small></div>').join('')
+  :'<div class="empty-state"><div class="empty-title">No matches</div></div>';
+}
+function cmdkKey(e){
+ if(e.key==='ArrowDown'){e.preventDefault();CMDK.sel=Math.min(CMDK.res.length-1,CMDK.sel+1);renderCmdkList();}
+ else if(e.key==='ArrowUp'){e.preventDefault();CMDK.sel=Math.max(0,CMDK.sel-1);renderCmdkList();}
+ else if(e.key==='Enter'){e.preventDefault();cmdkExec(CMDK.sel);}
+}
+function cmdkExec(i){
+ const r=CMDK.res[i];if(!r)return;
+ closeCmdk();
+ try{r.run();}catch(e){console.warn('cmdk',e&&e.message);}
+}
+document.addEventListener('keydown',function(e){
+ if((e.metaKey||e.ctrlKey)&&String(e.key).toLowerCase()==='k'){e.preventDefault();if(CURRENT)openCmdk();}
+ else if(e.key==='Escape')closeCmdk();
+});
+
+/* ================================================================
    SECTION 12 - SELF-TEST HARNESS (ported from bb-master-skeleton)
    Snapshot everything -> run ~40 checks on seeded demo data with the
    write seam in demo mode -> restore in finally. Zero footprint.
@@ -1865,6 +2038,12 @@ async function runSelfTest(opts){
    CURRENT.role=was;
    ok('Dev role is not admin (commission paid-toggle gated)',devCan===false&&(was!=='admin'||canAdmin()));
   })();
+  /* ---- A1.5 smart layer ---- */
+  ok('Next-best-action picks the live critical bug first',(nextBestAction()||{}).id===5);
+  const attn0=computeAttention();
+  ok('Dev Sentinel flags the expiring SSL certificate',attn0.some(a=>a.msg.indexOf('SSL')>-1),attn0.length+' signals');
+  ok('Command palette finds clients and work by fragment',cmdkResults('gem').some(r=>r.kind==='Client')&&cmdkResults('checkout').length>0);
+  closeCmdk();
   /* ---- A2 board mechanics ---- */
   const it1=DATA.items.find(i=>i.id===1);
   const openBefore=DATA.hist.find(h=>h.item_id===1&&!h.exited_at);
