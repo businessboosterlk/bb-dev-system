@@ -401,33 +401,6 @@ kbd{background:var(--surface-2);border:1px solid var(--border-strong);border-rad
 #loginScreen::before{content:"";position:fixed;inset:0;pointer-events:none;
   background:radial-gradient(640px 340px at 50% 10%,var(--accent-soft),transparent 70%)}
 
-/* ---------- weekly plan ---------- */
-.plan-nav{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
-.plan-range{font-size:13.5px;font-weight:600;color:var(--text)}
-.plan-board{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;align-items:start}
-@media(max-width:900px){.plan-board{display:flex;overflow-x:auto;gap:12px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:8px}.plan-col{scroll-snap-align:start;min-width:80vw}}
-.plan-col{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-card);display:flex;flex-direction:column;min-height:130px}
-.plan-col.is-today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--shadow-card)}
-.plan-day{padding:12px 14px 10px;border-bottom:1px solid var(--border);display:flex;align-items:baseline;justify-content:space-between}
-.plan-day b{font-size:13px;font-weight:700;display:flex;align-items:center}
-.plan-day .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;margin-left:7px}
-.plan-day span{font-size:11px;color:var(--text-3)}
-.plan-entries{padding:10px;display:flex;flex-direction:column;gap:8px;flex:1}
-.plan-entry{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 11px;cursor:pointer;transition:border-color var(--t-fast)}
-.plan-entry:hover{border-color:var(--border-strong)}
-.plan-entry.done{opacity:.62}
-.plan-entry.done .pe-title{text-decoration:line-through}
-.pe-title{font-size:12.5px;font-weight:600;line-height:1.35;margin-bottom:8px;word-break:break-word}
-.pe-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-.pe-status{width:20px;height:20px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);display:grid;place-items:center;flex-shrink:0;color:var(--text-3);cursor:pointer}
-.pe-status:hover{border-color:var(--accent)}
-.pe-status.done{background:var(--green-soft);border-color:transparent;color:var(--green)}
-.pe-status.delayed{background:var(--amber-soft);border-color:transparent;color:var(--amber)}
-.pe-status svg{width:12px;height:12px}
-.plan-add{margin:0 10px 10px;border:1px dashed var(--border-strong);border-radius:var(--r-sm);padding:8px;font-size:12px;font-weight:600;color:var(--text-3);width:calc(100% - 20px);display:inline-flex;align-items:center;justify-content:center;gap:5px;transition:color var(--t-fast),border-color var(--t-fast)}
-.plan-add:hover{color:var(--accent);border-color:var(--accent)}
-.plan-add svg{width:13px;height:13px}
-
 /* ---------- print ---------- */
 @media print{.sidebar,.topbar,.nav-mask{display:none!important}.main{margin:0!important}}
 </style>
@@ -481,7 +454,6 @@ kbd{background:var(--surface-2);border:1px solid var(--border-strong);border-rad
       <div class="marquee" id="marquee"></div>
       <section class="page" id="page-today"></section>
       <section class="page" id="page-board"></section>
-      <section class="page" id="page-plan"></section>
       <section class="page" id="page-clients"></section>
       <section class="page" id="page-keyring"></section>
       <section class="page" id="page-care"></section>
@@ -673,9 +645,9 @@ function looksLikeSecret(s){if(!s)return false;return /[A-Za-z0-9_\-\/+=]{24,}/.
    silent app auth (same trust model as the Video System).
    ================================================================ */
 let sb=null;
-let DATA={clients:[],team:[],items:[],hist:[],comments:[],links:[],access:[],props:[],recurring:[],deploys:[],ranks:[],weekly:[],alerts:[]};
+let DATA={clients:[],team:[],items:[],hist:[],comments:[],links:[],access:[],props:[],recurring:[],deploys:[],ranks:[],alerts:[]};
 const TBL={dev_items:'items',dev_stage_history:'hist',dev_item_comments:'comments',dev_item_links:'links',
- dev_client_access:'access',dev_properties:'props',dev_recurring:'recurring',dev_deploys:'deploys',dev_seo_ranks:'ranks',dev_weekly_plan:'weekly'};
+ dev_client_access:'access',dev_properties:'props',dev_recurring:'recurring',dev_deploys:'deploys',dev_seo_ranks:'ranks'};
 let _seq=5000;
 
 const DBW={
@@ -826,17 +798,7 @@ function seedData(){
   {id:604,client_id:9003,keyword:'sapphire jewellery sri lanka',position:29,checked_at:d(-2)},
   {id:605,client_id:9001,keyword:'boutique hotel wadduwa',position:8,checked_at:d(-2)}
  ];
- var wk=d(-2);
- const weekly=[
-  {id:701,week_start:wk,day_of_week:1,title:'Lanka Auto Care CRM: finish the quotation module',work_type:'system',client_id:9002,status:'done',assigned_to:'HIRAN'},
-  {id:702,week_start:wk,day_of_week:1,title:'Reply to Colombo Bites website enquiry and scope it',work_type:'website',client_id:9004,status:'pending',assigned_to:'HIRAN'},
-  {id:703,week_start:wk,day_of_week:2,title:'Ceylon Grand hotel build: rooms and dining sections',work_type:'website',client_id:9001,status:'pending',assigned_to:'HIRAN'},
-  {id:704,week_start:wk,day_of_week:3,title:'Fix Serendib Gems checkout button (live bug)',work_type:'maintenance',client_id:9003,status:'done',assigned_to:'HIRAN'},
-  {id:705,week_start:wk,day_of_week:3,title:'Serendib SEO: draft the Ratnapura gem-tours cluster post',work_type:'seo',client_id:9003,status:'pending',assigned_to:'HIRAN'},
-  {id:706,week_start:wk,day_of_week:4,title:'Ceylon Grand monthly site health check',work_type:'maintenance',client_id:9001,status:'pending',assigned_to:'HIRAN'},
-  {id:707,week_start:wk,day_of_week:5,title:'Weekly backup verify and review the deploy log',work_type:'maintenance',client_id:null,status:'pending',assigned_to:'HIRAN'}
- ];
- return {clients,team,items,hist,comments,links,access,props,recurring,deploys,ranks,weekly,alerts:[]};
+ return {clients,team,items,hist,comments,links,access,props,recurring,deploys,ranks,alerts:[]};
 }
 
 /* ---------- live loader ---------- */
@@ -855,7 +817,7 @@ async function initSupabase(){
 async function fetchAll(){
  if(MODE==='demo'){DATA=seedData();return;}
  const q=(t,sel,mod)=>{let x=sb.from(t).select(sel);if(mod)x=mod(x);return x.then(r=>{if(r.error){console.warn('load '+t,r.error.message);return [];}return r.data||[];});};
- const [clients,team,items,hist,comments,links,access,props,recurring,deploys,ranks,weekly,alerts]=await Promise.all([
+ const [clients,team,items,hist,comments,links,access,props,recurring,deploys,ranks,alerts]=await Promise.all([
   /* deliberate: never select mrr/package/health - the dev role must not see client money */
   q('clients','id,name,industry,client_type',x=>x.order('name')),
   q('team_members','id,name,role,active'),
@@ -868,10 +830,9 @@ async function fetchAll(){
   q('dev_recurring','*'),
   q('dev_deploys','*',x=>x.order('deployed_at',{ascending:false}).limit(300)),
   q('dev_seo_ranks','*',x=>x.order('checked_at')),
-  q('dev_weekly_plan','*',x=>x.order('week_start')),
   q('agent_alerts','*',x=>x.or('system.eq.dev,system.eq.all').order('created_at',{ascending:false}).limit(50))
  ]);
- DATA={clients,team,items,hist,comments,links,access,props,recurring,deploys,ranks,weekly,alerts};
+ DATA={clients,team,items,hist,comments,links,access,props,recurring,deploys,ranks,alerts};
 }
 
 /* ---------- THE CARE ENGINE: recurring templates spawn cards ----------
@@ -919,7 +880,6 @@ function canAdmin(){return CURRENT&&CURRENT.role==='admin';}
 const NAV=[
  {key:'today',label:'Today',icon:'zap',sec:'Work'},
  {key:'board',label:'Board',icon:'box',sec:'Work'},
- {key:'plan',label:'Weekly Plan',icon:'cal',sec:'Work'},
  {key:'clients',label:'Clients',icon:'user',sec:'Clients'},
  {key:'keyring',label:'Keyring',icon:'key',sec:'Clients'},
  {key:'care',label:'Care',icon:'wrench',sec:'Operations'},
@@ -927,7 +887,7 @@ const NAV=[
  {key:'reports',label:'Reports',icon:'chart',sec:'Operations'},
  {key:'system',label:'System',icon:'gear',sec:'System'}
 ];
-const TITLES={today:'Today',board:'Work Board',plan:'Weekly Plan',clients:'Clients',keyring:'The Keyring',care:'Care',deploys:'Deploys',reports:'Reports',system:'System'};
+const TITLES={today:'Today',board:'Work Board',clients:'Clients',keyring:'The Keyring',care:'Care',deploys:'Deploys',reports:'Reports',system:'System'};
 function pageAllowed(pg){return !!TITLES[pg];}
 
 function renderLogin(){
@@ -999,7 +959,6 @@ function pageErrorBoundary(pg,e){
 }
 const PAGE_HEAD={
  board:{k:'Work',t:'Work Board',s:'Every build, fix, site and SEO task in one place. Drag across stages inside a work-type.'},
- plan:{k:'Work',t:'Weekly Plan',s:'What Hiran is doing each day this week. Add a task to any day, tick it off as it is done.'},
  clients:{k:'Clients',t:'Clients',s:'Who we work for, what is open, and where access stands.'},
  keyring:{k:'Clients',t:'The Keyring',s:'What access we hold for each client, and what is still missing.'},
  care:{k:'Operations',t:'Care',s:'Recurring upkeep and the health of every site and system.'},
@@ -1960,76 +1919,7 @@ async function markAlertsRead(){
 }
 function updateBell(){const d=document.getElementById('bellDot');if(d)d.hidden=!(DATA.alerts||[]).some(a=>!a.read_at);}
 
-/* ================================================================
-   WEEKLY PLAN - Hiran's Mon-Fri plan for the week (sibling of the
-   Video/Graphic weekly plans; own dev_weekly_plan table)
-   ================================================================ */
-let PLAN_WEEK=null;
-const DOW=['Mon','Tue','Wed','Thu','Fri'];
-function mondayISO(iso){var d=new Date(iso+'T12:00:00');var g=d.getDay();d.setDate(d.getDate()+(g===0?-6:1-g));return d.toISOString().slice(0,10);}
-function shortDate(iso){return fmtDate(iso).replace(/ 20\d\d$/,'');}
-function planWeekNav(delta){PLAN_WEEK=addDays(PLAN_WEEK,delta*7);renderPlan();}
-function renderPlan(){
- var el=document.getElementById('page-plan');
- if(!PLAN_WEEK)PLAN_WEEK=mondayISO(todayISO());
- var today=todayISO();
- var rows=(DATA.weekly||[]).filter(function(r){return String(r.week_start)===PLAN_WEEK;});
- var done=rows.filter(function(r){return r.status==='done';}).length;
- var cols=DOW.map(function(dn,i){
-  var dow=i+1;var date=addDays(PLAN_WEEK,i);var isToday=(date===today);
-  var entries=rows.filter(function(r){return Number(r.day_of_week)===dow;});
-  var body=entries.length?mapSafe(entries,function(e){
-   var st=e.status==='done'?'done':e.status==='delayed'?'delayed':'';
-   return '<div class="plan-entry '+(e.status==='done'?'done':'')+'" onclick="openPlanForm('+e.id+')">'+
-    '<div class="pe-title">'+esc(e.title)+'</div>'+
-    '<div class="pe-meta"><button class="pe-status '+st+'" title="'+esc(e.status||'pending')+'" onclick="event.stopPropagation();cyclePlan('+e.id+')">'+(e.status==='done'?I.check:e.status==='delayed'?I.clock:'')+'</button>'+
-    wtBadge(e.work_type)+(e.client_id!=null?'<span class="wc-client">'+esc(clientName(e.client_id))+'</span>':'')+'</div></div>';
-  }):'<div class="empty-sub" style="padding:4px 2px">Nothing planned</div>';
-  return '<div class="plan-col'+(isToday?' is-today':'')+'"><div class="plan-day"><b>'+dn+(isToday?'<span class="dot"></span>':'')+'</b><span>'+shortDate(date)+'</span></div>'+
-   '<div class="plan-entries">'+body+'</div><button class="plan-add" onclick="openPlanForm(null,'+dow+')">'+I.plus+' Add</button></div>';
- }).join('');
- el.innerHTML='<div class="plan-nav"><div class="tab-group"><button class="tab-btn" onclick="planWeekNav(-1)">Prev</button>'+
-  '<button class="tab-btn" onclick="PLAN_WEEK=mondayISO(todayISO());renderPlan()">This week</button>'+
-  '<button class="tab-btn" onclick="planWeekNav(1)">Next</button></div>'+
-  '<span class="plan-range">'+shortDate(PLAN_WEEK)+' to '+shortDate(addDays(PLAN_WEEK,4))+'</span>'+
-  '<span class="empty-sub">'+done+' of '+rows.length+' done</span>'+
-  '<span style="flex:1"></span><button class="btn-primary btn-sm" onclick="openPlanForm()">'+I.plus+' Add to plan</button></div>'+
-  '<div class="plan-board">'+cols+'</div>';
-}
-function openPlanForm(id,presetDay){
- var e=id?(DATA.weekly||[]).find(function(x){return Number(x.id)===Number(id);}):null;
- var dayOpts=DOW.map(function(dn,i){var v=i+1;return '<option value="'+v+'"'+((e?Number(e.day_of_week):(presetDay||1))===v?' selected':'')+'>'+dn+'</option>';}).join('');
- var cOpts='<option value="">No client</option>'+(DATA.clients||[]).map(function(c){return '<option value="'+c.id+'"'+(e&&Number(e.client_id)===Number(c.id)?' selected':'')+'>'+esc(c.name)+'</option>';}).join('');
- openModal(modalHead(id?'Edit plan item':'Plan a task')+
-  '<div class="modal-b"><div class="fld"><label>What are you doing</label><input id="plTitle" value="'+esc(e?e.title:'')+'" placeholder="e.g. Finish the Lanka Auto quotation module"></div>'+
-  '<div class="frm-row"><div class="fld"><label>Day</label><select id="plDay">'+dayOpts+'</select></div>'+
-  '<div class="fld"><label>Work type</label><select id="plType">'+WORK_TYPES.map(function(w){return '<option value="'+w+'"'+((e?e.work_type:'system')===w?' selected':'')+'>'+esc(GEARSETS[w].label)+'</option>';}).join('')+'</select></div></div>'+
-  '<div class="frm-row"><div class="fld"><label>Client</label><select id="plClient">'+cOpts+'</select></div>'+
-  '<div class="fld"><label>Status</label><select id="plStatus">'+['pending','done','delayed'].map(function(s){return '<option'+((e?e.status:'pending')===s?' selected':'')+'>'+s+'</option>';}).join('')+'</select></div></div>'+
-  '<div class="fld"><label>Notes</label><textarea id="plNotes">'+esc(e&&e.notes?e.notes:'')+'</textarea></div></div>'+
-  '<div class="modal-f">'+(id?'<button class="btn-ghost btn-danger btn-sm" onclick="delPlan('+id+')">'+I.trash+' Delete</button><span style="flex:1"></span>':'')+
-  '<button class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-primary" onclick="savePlan('+(id?id:'null')+')">'+I.check+' Save</button></div>');
-}
-async function savePlan(id){
- var title=(document.getElementById('plTitle').value||'').trim();
- if(!title){toast('Give it a title');return;}
- var cv=document.getElementById('plClient').value;
- var row={title:title,day_of_week:Number(document.getElementById('plDay').value),work_type:document.getElementById('plType').value,
-  client_id:cv?Number(cv):null,status:document.getElementById('plStatus').value,notes:(document.getElementById('plNotes').value||'').trim()||null,updated_at:nowISO()};
- try{
-  if(id){await DBW.update('dev_weekly_plan',id,row);}
-  else{row.week_start=PLAN_WEEK;row.assigned_to=CURRENT?CURRENT.name:'HIRAN';row.created_by=CURRENT?CURRENT.name:'HIRAN';await DBW.insert('dev_weekly_plan',row);}
-  closeModal();toast('Saved to the plan');renderPlan();
- }catch(err){toast('Save failed: '+esc(err&&err.message||''));}
-}
-async function cyclePlan(id){
- var e=(DATA.weekly||[]).find(function(x){return Number(x.id)===Number(id);});if(!e)return;
- var next=(!e.status||e.status==='pending')?'done':e.status==='done'?'delayed':'pending';
- try{await DBW.update('dev_weekly_plan',id,{status:next,updated_at:nowISO()});renderPlan();}catch(err){toast('Update failed');}
-}
-async function delPlan(id){try{await DBW.del('dev_weekly_plan',id);closeModal();toast('Removed');renderPlan();}catch(err){toast('Delete failed');}}
-
-const RENDERERS={today:renderToday,board:renderBoard,plan:renderPlan,clients:renderClients,keyring:renderKeyring,care:renderCare,deploys:renderDeploys,reports:renderReports,system:renderSystem};
+const RENDERERS={today:renderToday,board:renderBoard,clients:renderClients,keyring:renderKeyring,care:renderCare,deploys:renderDeploys,reports:renderReports,system:renderSystem};
 
 /* ================================================================
    SECTION 11.5 - SMART LAYER: next best action, the Dev Sentinel,
@@ -2242,14 +2132,6 @@ async function runSelfTest(opts){
   const web=DATA.items.find(i=>i.id===3);
   ok('Commission math: value x pct',Math.round(web.project_value*web.commission_pct/100)===18000);
   ok('Time truth: stage history sums to a real total',computeStageTime(12).total>0);
-  /* ---- A5.5 weekly plan ---- */
-  PLAN_WEEK=mondayISO(todayISO());
-  ok('Weekly plan: Monday-of-week computed right',new Date(PLAN_WEEK+'T12:00:00').getDay()===1,PLAN_WEEK);
-  go('plan');
-  ok('Weekly plan renders 5 day columns',document.querySelectorAll('#page-plan .plan-col').length===5,document.querySelectorAll('#page-plan .plan-col').length+' cols');
-  var _wpc=DATA.weekly.length;
-  await DBW.insert('dev_weekly_plan',{week_start:PLAN_WEEK,day_of_week:2,title:'selftest plan row',work_type:'system',status:'pending'});
-  ok('Weekly plan write path works',DATA.weekly.length===_wpc+1);
   /* ---- A6 page sweep: render, not blank, no overflow, rects clean ---- */
   const vw=window.innerWidth;
   const rectAudit=()=>{const b=[];document.querySelectorAll('.page.active *').forEach(el=>{const cs=getComputedStyle(el);
