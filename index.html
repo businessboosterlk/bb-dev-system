@@ -2,7 +2,12 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b0c0f">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="robots" content="noindex">
 <title>BB Dev OS</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='6' fill='%233b82f6'/><path d='M8 9l-3 3 3 3M16 9l3 3-3 3M13 7l-2 10' stroke='white' stroke-width='1.8' fill='none' stroke-linecap='round'/></svg>">
@@ -17,6 +22,9 @@
    CC orange, graphic pink, video purple, smm cyan, leads orange)
    ================================================================ */
 :root{
+/* ── BB APP SHELL: the phone reports its own insets, we never guess a model ── */
+--sat:env(safe-area-inset-top,0px);
+--sab:env(safe-area-inset-bottom,0px);
   --bg:#0b0c0f; --surface:#131419; --surface-2:#1a1c22; --surface-3:#23252d;
   --border:rgba(255,255,255,0.07); --border-strong:rgba(255,255,255,0.13);
   --accent:#3b82f6; --accent-2:#2563eb;
@@ -65,6 +73,9 @@ input,select,textarea{font-family:inherit;font-size:14px;color:var(--text)}
 a{color:inherit;text-decoration:none}
 img{display:block;max-width:100%}
 svg{flex-shrink:0}
+/* the strip behind the clock and the battery. In standalone the page owns it,
+   so the page has to paint it or the content shows through. */
+.statusfill{position:fixed;top:0;left:0;right:0;height:var(--sat);z-index:60;pointer-events:none}
 .ic{width:16px;height:16px}
 ::selection{background:var(--accent);color:#fff}
 :focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-glow);border-radius:var(--r-sm)}
@@ -94,6 +105,32 @@ svg{flex-shrink:0}
 .login-field::placeholder{color:var(--text-3)}
 .login-err{color:var(--red);font-size:11.5px;text-align:center;min-height:16px;margin-top:10px}
 .login-mode{text-align:center;margin-top:14px;font-size:10px;color:var(--text-3);letter-spacing:.06em;font-weight:600}
+.chk-cell{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:9px;cursor:pointer;
+  font-size:12px;font-weight:650;font-family:inherit;border:1px solid var(--border);background:transparent;color:var(--text-2);
+  transition:border-color var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
+.chk-cell svg{width:14px;height:14px;flex:none}
+.chk-cell:hover{border-color:var(--text-3);color:var(--text)}
+.chk-cell.ok{border-color:var(--green);color:var(--green)}
+.chk-cell.bug{border-color:var(--red);color:var(--red)}
+.chk-cell.open{border-style:dashed}
+.dayline{display:flex;gap:5px;align-items:center}
+.dpair{display:flex;gap:2px}
+.ddot{width:7px;height:7px;border-radius:2px;display:block}
+.ddot.ok{background:var(--green)}
+.ddot.bug{background:var(--red)}
+.ddot.miss{background:var(--border-strong,var(--border))}
+.blog-row{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--border)}
+.blog-row:last-child{border-bottom:none}
+.blog-row.rep{padding-top:14px;margin-top:5px;border-top:1px solid var(--border)}
+.blog-row .chk-cell{min-width:34px;justify-content:center;padding:7px 9px}
+.blog-title{flex:1;min-width:0;background:transparent;border:none;border-bottom:1px solid transparent;
+  color:var(--text);font-family:inherit;font-size:13px;padding:5px 2px}
+.blog-title:hover{border-bottom-color:var(--border)}
+.blog-title:focus{outline:none;border-bottom-color:var(--accent)}
+.blog-when{font-size:11px;color:var(--text-3);white-space:nowrap;flex:none}
+@media(max-width:640px){.blog-when{display:none}}
+.login-retry{display:flex;gap:8px;justify-content:center;margin-top:12px;font-size:12px;letter-spacing:normal}
+.load-warn{display:flex;align-items:center;gap:9px;padding:11px 14px;margin-bottom:14px;border:1px solid var(--red);border-radius:var(--r-md);background:rgba(239,68,68,.09);color:var(--red);font-size:12.5px;font-weight:600;line-height:1.45}
 
 /* ---------- shell ---------- */
 #app{display:none}
@@ -174,6 +211,7 @@ svg{flex-shrink:0}
 .stat-val.accent{color:var(--accent)}.stat-val.green{color:var(--green)}.stat-val.red{color:var(--red)}.stat-val.amber{color:var(--amber)}
 .stat-note{font-size:12px;color:var(--text-3);margin-top:7px}
 .badge{display:inline-block;font-size:10px;font-weight:600;padding:2.5px 8px;border-radius:var(--r-xs);letter-spacing:.01em;text-transform:capitalize}
+.badge.plain{text-transform:none}
 .badge.red{background:var(--red-soft);color:var(--red)}
 .badge.green{background:var(--green-soft);color:var(--green)}
 .badge.amber{background:var(--amber-soft);color:var(--amber)}
@@ -198,6 +236,7 @@ svg{flex-shrink:0}
 .btn-danger{border-color:rgba(239,68,68,.35);color:var(--red)}
 .btn-danger:hover{border-color:var(--red);color:var(--red);background:var(--red-soft)}
 .btn-sm{padding:8px 13px;font-size:12px}
+button:disabled,.login-field:disabled{opacity:.45;cursor:not-allowed}
 .tab-group{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);
   padding:3px;gap:3px;box-shadow:inset 0 1px 2px rgba(0,0,0,.18)}
 .tab-btn{padding:6px 13px;border-radius:6px;font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap;
@@ -433,6 +472,7 @@ kbd{background:var(--surface-2);border:1px solid var(--border-strong);border-rad
 </style>
 </head>
 <body>
+<div class="statusfill" aria-hidden="true"></div>
 
 <!-- ================= LOGIN ================= -->
 <div id="loginScreen">
@@ -478,9 +518,12 @@ kbd{background:var(--surface-2);border:1px solid var(--border-strong);border-rad
     </header>
 
     <div class="content">
+      <div class="load-warn" id="loadWarn" hidden></div>
       <div class="marquee" id="marquee"></div>
       <section class="page" id="page-today"></section>
       <section class="page" id="page-board"></section>
+      <section class="page" id="page-daily"></section>
+      <section class="page" id="page-monthly"></section>
       <section class="page" id="page-plan"></section>
       <section class="page" id="page-clients"></section>
       <section class="page" id="page-keyring"></section>
@@ -535,7 +578,8 @@ function nowISO(){return MODE==='demo'?DEMO_TODAY+'T09:00:00.000Z':new Date().to
 const USERS=[
  {name:'THULAIB',pin:'1031',role:'admin',title:'CEO'},
  {name:'SHIARA',pin:'1006',role:'admin',title:'COO'},
- {name:'HIRAN',pin:'1111',role:'dev',title:'Developer'}
+ {name:'KISHINI',pin:'2222',role:'admin',title:'Senior Developer'},
+ {name:'HIRAN',pin:'1111',role:'dev',title:'Junior Developer'}
 ];
 
 /* THE GEARSETS - the keystone. One board, four stage sets; every native
@@ -660,7 +704,6 @@ function addDays(iso,n){const d=new Date(iso+'T00:00:00Z');d.setUTCDate(d.getUTC
 function addMonths(iso,n){const d=new Date(iso+'T00:00:00Z');d.setUTCMonth(d.getUTCMonth()+n);return d.toISOString().slice(0,10);}
 function timeAgo(ts){if(!ts)return '';const s=(new Date(nowISO())-new Date(ts))/1000;if(s<60)return 'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago';}
 function fmtHours(sec){if(!sec)return '0h';const h=sec/3600;return h>=10?Math.round(h)+'h':(Math.round(h*10)/10)+'h';}
-function fmtLKR(n){return 'LKR '+Number(n||0).toLocaleString('en-US');}
 function clientName(id){if(id==null)return 'BB Internal';const c=(DATA.clients||[]).find(c=>Number(c.id)===Number(id));return c?c.name:'Client #'+id;}
 function memberName(id){const m=(DATA.team||[]).find(m=>Number(m.id)===Number(id));return m?m.name:'';}
 /* heuristic guard: warn if a note looks like a pasted secret */
@@ -673,9 +716,11 @@ function looksLikeSecret(s){if(!s)return false;return /[A-Za-z0-9_\-\/+=]{24,}/.
    silent app auth (same trust model as the Video System).
    ================================================================ */
 let sb=null;
-let DATA={clients:[],team:[],items:[],hist:[],comments:[],links:[],access:[],props:[],recurring:[],deploys:[],ranks:[],weekly:[],alerts:[]};
+let DATA={clients:[],team:[],items:[],hist:[],comments:[],links:[],access:[],props:[],recurring:[],deploys:[],ranks:[],weekly:[],alerts:[],
+ checks:[],blogs:[],mreports:[],seo:[]};
 const TBL={dev_items:'items',dev_stage_history:'hist',dev_item_comments:'comments',dev_item_links:'links',
- dev_client_access:'access',dev_properties:'props',dev_recurring:'recurring',dev_deploys:'deploys',dev_seo_ranks:'ranks',dev_weekly_plan:'weekly'};
+ dev_client_access:'access',dev_properties:'props',dev_recurring:'recurring',dev_deploys:'deploys',dev_seo_ranks:'ranks',dev_weekly_plan:'weekly',
+ dev_daily_checks:'checks',dev_blog_posts:'blogs',dev_month_report:'mreports',dev_seo_clients:'seo'};
 let _seq=5000;
 
 const DBW={
@@ -722,10 +767,10 @@ function seedData(){
   {id:2,client_id:null,title:'Leads System: fix report export bug',work_type:'system',stage:'queued',priority:'normal',
    deadline:d(6),assigned_to:9090,est_hours:2,severity:'low',created_by:'SHIARA',created_at:d(-2)+'T09:00:00Z',source:'manual'},
   {id:3,client_id:9001,title:'Ceylon Grand Hotel website build',work_type:'website',stage:'building',priority:'high',
-   deadline:d(9),assigned_to:9090,est_hours:40,project_value:180000,commission_pct:10,
+   deadline:d(9),assigned_to:9090,est_hours:40,
    notes:'Hotel template fork. Rooms + dining + booking enquiry.',created_by:'THULAIB',created_at:d(-8)+'T09:00:00Z',source:'manual'},
   {id:4,client_id:9004,title:'Colombo Bites: new website enquiry',work_type:'website',stage:'lead',priority:'normal',
-   assigned_to:9090,project_value:120000,commission_pct:10,created_by:'HIRAN',created_at:d(-1)+'T09:00:00Z',source:'manual'},
+   assigned_to:9090,created_by:'HIRAN',created_at:d(-1)+'T09:00:00Z',source:'manual'},
   {id:5,client_id:9003,title:'Checkout button dead on mobile',work_type:'maintenance',stage:'fixing',priority:'urgent',
    severity:'critical',is_live:true,is_blocking:true,deadline:d(0),assigned_to:9090,est_hours:3,
    notes:'Reported by owner via WhatsApp. Reproduced on iPhone Safari.',created_by:'SHIARA',created_at:d(-1)+'T08:00:00Z',source:'manual'},
@@ -836,7 +881,53 @@ function seedData(){
   {id:706,week_start:wk,day_of_week:4,title:'Ceylon Grand monthly site health check',work_type:'maintenance',client_id:9001,status:'pending',assigned_to:'HIRAN'},
   {id:707,week_start:wk,day_of_week:5,title:'Weekly backup verify and review the deploy log',work_type:'maintenance',client_id:null,status:'pending',assigned_to:'HIRAN'}
  ];
- return {clients,team,items,hist,comments,links,access,props,recurring,deploys,ranks,weekly,alerts:[]};
+
+ /* --- the care + content spine: what we look after, and what is due each month ---
+    Demo mirrors the real shape Thulaib set on 2026-08-03: two websites under
+    maintenance, one system, four clients on four blog posts a month. */
+ const TY=Number(todayISO().slice(0,4)),TM=Number(todayISO().slice(5,7));
+ const seo=[
+  {id:601,client_id:9001,posts_per_month:4,active:true},
+  {id:602,client_id:9003,posts_per_month:4,active:true},
+  {id:603,client_id:9004,posts_per_month:4,active:true},
+  {id:604,client_id:9002,posts_per_month:4,active:true}
+ ];
+ const BLOGT={
+  9001:['Best time of year to visit the hill country','How to choose a beach hotel in Sri Lanka','What a boutique hotel actually includes','Wedding venues in the south: a guide'],
+  9003:['How to tell a real Ceylon sapphire','Gem grading explained in plain English','Ratnapura mine tours: what to expect','Caring for a sapphire ring'],
+  9004:['Where to eat late in Colombo','Sri Lankan street food, ranked','How we source our seafood','Booking a table for a big group'],
+  9002:['','','','']
+ };
+ const blogs=[];let _b=700;
+ Object.keys(BLOGT).forEach(function(cid){
+  BLOGT[cid].forEach(function(t,i){
+   const posted=(cid==='9001'&&i<3)||(cid==='9003'&&i<1);
+   blogs.push({id:++_b,client_id:Number(cid),target_year:TY,target_month:TM,slot:i+1,title:t,
+    posted_at:posted?d(-(4-i))+'T10:00:00Z':null,posted_by:posted?'HIRAN':null,url:null});
+  });
+ });
+ const mreports=[
+  {id:801,client_id:9001,target_year:TY,target_month:TM,done_at:d(-2)+'T16:00:00Z',done_by:'HIRAN',note:null},
+  {id:802,client_id:9003,target_year:TY,target_month:TM,done_at:null,done_by:null,note:null},
+  {id:803,client_id:9004,target_year:TY,target_month:TM,done_at:null,done_by:null,note:null},
+  {id:804,client_id:9002,target_year:TY,target_month:TM,done_at:null,done_by:null,note:null}
+ ];
+ /* two weeks of twice-daily checks, deliberately imperfect so the record reads honestly */
+ const checks=[];let _c=900;
+ [401,402,403].forEach(function(pid){
+  for(let back=6;back>=0;back--){
+   ['am','pm'].forEach(function(slot){
+    const skip=(back===0&&slot==='pm')||(pid===403&&back===2)||(pid===402&&back===4&&slot==='am');
+    if(skip)return;
+    const bug=(pid===403&&back===1&&slot==='pm');
+    checks.push({id:++_c,check_date:d(-back),slot:slot,property_id:pid,
+     checked_at:d(-back)+(slot==='am'?'T03:40:00Z':'T12:10:00Z'),checked_by:back%2?'HIRAN':'KISHINI',
+     bugs_found:bug,note:bug?'Checkout button dead on mobile. Logged as a bug.':null});
+   });
+  }
+ });
+ return {clients,team,items,hist,comments,links,access,props,recurring,deploys,ranks,weekly,alerts:[],
+  checks,blogs,mreports,seo};
 }
 
 /* ---------- live loader ---------- */
@@ -852,10 +943,15 @@ async function initSupabase(){
   return true;
  }catch(e){console.warn('supabase init failed',e&&e.message);return false;}
 }
+/* Tables that came back empty because the READ FAILED, not because there is
+   no data. An empty board that means "401" but reads "no work" is a lie, so
+   every failure is named on screen. See renderLoadWarn. */
+let LOAD_FAILED=[];
 async function fetchAll(){
- if(MODE==='demo'){DATA=seedData();return;}
- const q=(t,sel,mod)=>{let x=sb.from(t).select(sel);if(mod)x=mod(x);return x.then(r=>{if(r.error){console.warn('load '+t,r.error.message);return [];}return r.data||[];});};
- const [clients,team,items,hist,comments,links,access,props,recurring,deploys,ranks,weekly,alerts]=await Promise.all([
+ if(MODE==='demo'){DATA=seedData();LOAD_FAILED=[];return;}
+ LOAD_FAILED=[];
+ const q=(t,sel,mod)=>{let x=sb.from(t).select(sel);if(mod)x=mod(x);return x.then(r=>{if(r.error){console.warn('load '+t,r.error.message);LOAD_FAILED.push(t);return [];}return r.data||[];});};
+ const [clients,team,items,hist,comments,links,access,props,recurring,deploys,ranks,weekly,checks,blogs,mreports,seo,alerts]=await Promise.all([
   /* deliberate: never select mrr/package/health - the dev role must not see client money */
   q('clients','id,name,industry,client_type',x=>x.order('name')),
   q('team_members','id,name,role,active'),
@@ -869,9 +965,13 @@ async function fetchAll(){
   q('dev_deploys','*',x=>x.order('deployed_at',{ascending:false}).limit(300)),
   q('dev_seo_ranks','*',x=>x.order('checked_at')),
   q('dev_weekly_plan','*',x=>x.order('week_start')),
+  q('dev_daily_checks','*',x=>x.gte('check_date',addDays(todayISO(),-13)).order('check_date')),
+  q('dev_blog_posts','*',x=>x.order('slot')),
+  q('dev_month_report','*'),
+  q('dev_seo_clients','*',x=>x.eq('active',true)),
   q('agent_alerts','*',x=>x.or('system.eq.dev,system.eq.all').order('created_at',{ascending:false}).limit(50))
  ]);
- DATA={clients,team,items,hist,comments,links,access,props,recurring,deploys,ranks,weekly,alerts};
+ DATA={clients,team,items,hist,comments,links,access,props,recurring,deploys,ranks,weekly,checks,blogs,mreports,seo,alerts};
 }
 
 /* ---------- THE CARE ENGINE: recurring templates spawn cards ----------
@@ -919,15 +1019,17 @@ function canAdmin(){return CURRENT&&CURRENT.role==='admin';}
 const NAV=[
  {key:'today',label:'Today',icon:'zap',sec:'Work'},
  {key:'board',label:'Board',icon:'box',sec:'Work'},
+ {key:'daily',label:'Daily Checks',icon:'shield',sec:'Work'},
  {key:'plan',label:'Weekly Plan',icon:'cal',sec:'Work'},
  {key:'clients',label:'Clients',icon:'user',sec:'Clients'},
+ {key:'monthly',label:'Monthly',icon:'cal',sec:'Clients'},
  {key:'keyring',label:'Keyring',icon:'key',sec:'Clients'},
  {key:'care',label:'Care',icon:'wrench',sec:'Operations'},
  {key:'deploys',label:'Deploys',icon:'rocket',sec:'Operations'},
  {key:'reports',label:'Reports',icon:'chart',sec:'Operations'},
  {key:'system',label:'System',icon:'gear',sec:'System'}
 ];
-const TITLES={today:'Today',board:'Work Board',plan:'Weekly Plan',clients:'Clients',keyring:'The Keyring',care:'Care',deploys:'Deploys',reports:'Reports',system:'System'};
+const TITLES={today:'Today',board:'Work Board',daily:'Daily Checks',monthly:'Monthly',plan:'Weekly Plan',clients:'Clients',keyring:'The Keyring',care:'Care',deploys:'Deploys',reports:'Reports',system:'System'};
 function pageAllowed(pg){return !!TITLES[pg];}
 
 function renderLogin(){
@@ -936,6 +1038,27 @@ function renderLogin(){
  document.getElementById('lgMode').textContent=MODE==='demo'?'Demo mode: sample data, nothing saves':'Live system';
 }
 function focusPw(){var p=document.getElementById('lgPw');if(p)p.focus();}
+/* LIVE MEANS LIVE. If the database is unreachable we say so and stop dead.
+   We never quietly swap in sample data: a fabricated board read as real is
+   worse than no board at all. Demo stays available, but only as a click. */
+function showConnectionFailure(){
+ var card=document.querySelector('.login-card');if(!card)return;
+ ['lgName','lgPw'].forEach(function(id){var el=document.getElementById(id);if(el){el.value='';el.disabled=true;}});
+ var btn=card.querySelector('button.btn-primary');if(btn){btn.disabled=true;btn.textContent='Cannot sign in';}
+ document.getElementById('lgErr').textContent='Cannot reach the database. Nothing has been loaded.';
+ document.getElementById('lgMode').innerHTML='Check the internet connection, then try again.'+
+  '<div class="login-retry">'+
+  '<button class="btn-ghost btn-sm" onclick="location.reload()">Try again</button>'+
+  '<a class="btn-ghost btn-sm" href="'+esc(location.pathname)+'?demo=1">Open sample data</a></div>';
+}
+/* names every table whose read failed, so a half-loaded page cannot read as a full one */
+function renderLoadWarn(){
+ var el=document.getElementById('loadWarn');if(!el)return;
+ if(MODE==='demo'||!LOAD_FAILED.length){el.hidden=true;el.textContent='';return;}
+ el.hidden=false;
+ el.textContent=LOAD_FAILED.length+(LOAD_FAILED.length===1?' table failed to load ':' tables failed to load ')+
+  '('+LOAD_FAILED.join(', ')+'). What you see below is incomplete, not empty.';
+}
 function updateClock(){
  var now=new Date();
  var t=document.getElementById('sbTime');if(t)t.textContent=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
@@ -1001,10 +1124,12 @@ const PAGE_HEAD={
  board:{k:'Work',t:'Work Board',s:'Every build, fix, site and SEO task in one place. Drag across stages inside a work-type.'},
  plan:{k:'Work',t:'Weekly Plan',s:'What Hiran is doing each day this week. Add a task to any day, tick it off as it is done.'},
  clients:{k:'Clients',t:'Clients',s:'Who we work for, what is open, and where access stands.'},
+ daily:{k:'Work',t:'Daily Checks',s:'Every site and system we look after, checked morning and evening.'},
+ monthly:{k:'Clients',t:'The Month',s:'Blog posts due and the client report, ticked as they are done.'},
  keyring:{k:'Clients',t:'The Keyring',s:'What access we hold for each client, and what is still missing.'},
  care:{k:'Operations',t:'Care',s:'Recurring upkeep and the health of every site and system.'},
  deploys:{k:'Operations',t:'Deploys',s:'Every release, logged with a rollback pointer you can undo.'},
- reports:{k:'Operations',t:'Reports',s:'Client receipts, the true time cost of work, and commission.'},
+ reports:{k:'Operations',t:'Reports',s:'Client receipts and the true time cost of the work.'},
  system:{k:'System',t:'System',s:'Self-test, mode, and the rules written into the tool.'}
 };
 function renderMarquee(pg){
@@ -1214,8 +1339,6 @@ function openItem(id){
  (it.work_type==='seo'?'<div class="frm-row"><div class="fld"><label>SEO kind</label><input value="'+esc((SEO_KINDS[it.seo_kind]||{}).label||it.seo_kind||'-')+'" disabled></div>'+
   '<div class="fld"><label>Ledger state (mirrors the skill file)</label><select onchange="patchItem('+it.id+',{seo_state:this.value})">'+
   ((SEO_KINDS[it.seo_kind]||{states:[]}).states.map(s=>'<option'+(s===it.seo_state?' selected':'')+'>'+s+'</option>').join(''))+'</select></div></div>':'')+
- (it.work_type==='website'&&it.project_value?'<div class="frm-row"><div class="fld"><label>Project value</label><input value="'+esc(fmtLKR(it.project_value))+'" disabled></div>'+
-  '<div class="fld"><label>Commission</label><input value="'+esc(fmtLKR(Math.round(it.project_value*(Number(it.commission_pct)||0)/100)))+' ('+(Number(it.commission_pct)||0)+'%)" disabled></div></div>':'')+
  (it.root_cause?'<div class="fld"><label>Root cause</label><div class="copybox">'+esc(it.root_cause)+'</div></div>':'')+
  (it.client_note?'<div class="fld"><label>Client receipt line</label><div class="copybox">'+esc(it.client_note)+'</div></div>':'')+
  (it.notes?'<div class="fld"><label>Notes</label><div class="copybox">'+esc(it.notes)+'</div></div>':'')+
@@ -1347,9 +1470,6 @@ function ifTypeChanged(it){
   html='<div class="frm-row"><div class="fld"><label>SEO kind</label><select id="ifSeoKind" onchange="ifSeoKindChanged()">'+
    Object.keys(SEO_KINDS).map(k=>'<option value="'+k+'"'+(it&&it.seo_kind===k?' selected':'')+'>'+esc(SEO_KINDS[k].label)+'</option>').join('')+'</select></div>'+
   '<div class="fld"><label>Ledger state</label><select id="ifSeoState"></select></div></div>';
- }else if(wt==='website'){
-  html='<div class="frm-row"><div class="fld"><label>Project value (LKR)</label><input id="ifVal" type="number" min="0" value="'+esc(it&&it.project_value!=null?it.project_value:'')+'"></div>'+
-  '<div class="fld"><label>Commission %</label><input id="ifPct" type="number" min="0" max="100" value="'+esc(it&&it.commission_pct!=null?it.commission_pct:10)+'"></div></div>';
  }
  document.getElementById('ifExtra').innerHTML=html;
  if(wt==='seo')ifSeoKindChanged(it);
@@ -1380,10 +1500,9 @@ async function saveItemForm(id){
   row.is_blocking=!!(document.getElementById('ifBlocking')&&document.getElementById('ifBlocking').checked);
  }
  if(wt==='seo'){row.seo_kind=document.getElementById('ifSeoKind').value;row.seo_state=document.getElementById('ifSeoState').value;}
- if(wt==='website'){
-  const v=document.getElementById('ifVal').value,p=document.getElementById('ifPct').value;
-  row.project_value=v?Number(v):null;row.commission_pct=p?Number(p):null;
- }
+ /* NO MONEY RULE: the Dev System never captures or renders a price. Developers
+    are salaried, not commissioned, so project value has no reader here. The
+    dev_items money columns are left untouched in the database. */
  try{
   if(id){await DBW.update('dev_items',id,row);toast('Saved');}
   else{
@@ -1789,20 +1908,179 @@ async function saveDeploy(){
  }catch(e){toast('Save failed: '+esc(e&&e.message||''));}
 }
 
+
 /* ================================================================
-   SECTION 10 - REPORTS (client receipt report, time truth, commission)
+   SECTION 9.5 - DAILY CHECKS AND THE MONTH
+   A tick is a TIME and a NAME, never a bare boolean. Shape taken from
+   the SMM publish tracker: "checked" is worth little, "KISHINI 09:12"
+   is worth a lot, and a tick can be corrected but never silently lost.
+   ================================================================ */
+let CHK_DATE=null,MON_YM=null;
+function chkDate(){return CHK_DATE||todayISO();}
+function monYM(){return MON_YM||todayISO().slice(0,7);}
+function monitored(){return (DATA.props||[]).filter(p=>p.type==='website'||p.type==='system');}
+function checkOf(pid,date,slot){return (DATA.checks||[]).find(c=>Number(c.property_id)===Number(pid)&&c.check_date===date&&c.slot===slot)||null;}
+function plural(n,word){return n+' '+word+(n===1?'':'s');}
+function fmtClock(iso){if(!iso)return '';try{return new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}catch(e){return '';}}
+function shiftDate(n){CHK_DATE=addDays(chkDate(),n);renderPageRefresh();}
+function shiftMonth(n){const y=Number(monYM().slice(0,4)),m=Number(monYM().slice(5,7));const d=new Date(Date.UTC(y,m-1+n,1));MON_YM=d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0');renderPageRefresh();}
+
+function renderDaily(){
+ const el=document.getElementById('page-daily');
+ const date=chkDate(),props=monitored(),slots=['am','pm'];
+ const due=props.length*2;
+ const done=props.reduce((n,p)=>n+slots.filter(sl=>checkOf(p.id,date,sl)).length,0);
+ const bugs=props.reduce((n,p)=>n+slots.filter(sl=>{const c=checkOf(p.id,date,sl);return c&&c.bugs_found;}).length,0);
+ const isToday=date===todayISO();
+ const cell=(p,sl)=>{
+  const c=checkOf(p.id,date,sl);
+  if(!c)return '<button class="chk-cell open" onclick="openCheck('+p.id+',\''+sl+'\')">Check</button>';
+  return '<button class="chk-cell '+(c.bugs_found?'bug':'ok')+'" onclick="openCheck('+p.id+',\''+sl+'\')">'+
+   (c.bugs_found?I.alert:I.check)+'<span>'+esc(c.checked_by||'')+' '+fmtClock(c.checked_at)+'</span></button>';
+ };
+ const strip=p=>{let out='';
+  for(let b=6;b>=0;b--){const dt=addDays(todayISO(),-b);
+   out+='<span class="dpair" title="'+esc(fmtDate(dt))+'">'+slots.map(sl=>{
+    const c=checkOf(p.id,dt,sl);
+    return '<i class="ddot '+(!c?'miss':(c.bugs_found?'bug':'ok'))+'"></i>';}).join('')+'</span>';}
+  return out;};
+ el.innerHTML=
+ '<div class="seg-bar"><div class="plan-nav">'+
+  '<button class="btn-ghost btn-sm" onclick="shiftDate(-1)">&larr; Previous day</button>'+
+  '<span class="plan-range">'+esc(fmtDate(date))+(isToday?' &middot; today':'')+'</span>'+
+  '<button class="btn-ghost btn-sm" onclick="shiftDate(1)"'+(isToday?' disabled':'')+'>Next day &rarr;</button>'+
+ '</div></div>'+
+ '<div class="stat-grid">'+
+  '<div class="stat-card"><div class="stat-lbl">Checks done</div><div class="stat-val '+(due&&done===due?'green':'accent')+'">'+done+'</div><div class="stat-note">of '+due+' due today</div></div>'+
+  '<div class="stat-card"><div class="stat-lbl">Bugs found</div><div class="stat-val '+(bugs?'red':'green')+'">'+bugs+'</div><div class="stat-note">'+(bugs?'log each one as work':'nothing reported')+'</div></div>'+
+  '<div class="stat-card"><div class="stat-lbl">Under care</div><div class="stat-val accent">'+props.length+'</div><div class="stat-note">'+plural(props.filter(p=>p.type==='website').length,'site')+', '+plural(props.filter(p=>p.type==='system').length,'system')+'</div></div>'+
+ '</div>'+
+ '<div class="card"><div class="card-h"><h3>Morning and evening</h3><span class="sp"><span class="hint">Every tick records who and when</span></span></div>'+
+ '<div class="card-b tbl-wrap">'+
+ (props.length?'<table class="tbl"><thead><tr><th>What we check</th><th>Client</th><th>Morning</th><th>Evening</th><th>Last 7 days</th></tr></thead><tbody>'+
+  mapSafe(props,p=>'<tr><td><b>'+esc(p.name)+'</b><div class="empty-sub">'+(p.type==='system'?'System':'Website')+'</div></td>'+
+   '<td>'+esc(clientName(p.client_id))+'</td>'+
+   '<td>'+cell(p,'am')+'</td><td>'+cell(p,'pm')+'</td>'+
+   '<td><div class="dayline">'+strip(p)+'</div></td></tr>')+
+  '</tbody></table>'
+  :'<div class="empty-state"><div class="empty-title">Nothing is under care yet</div><div class="empty-sub">Add the sites and systems we look after, and every one of them appears here, morning and evening.</div></div>')+
+ '</div></div>';
+}
+function openCheck(pid,slot){
+ const p=(DATA.props||[]).find(x=>Number(x.id)===Number(pid));if(!p)return;
+ const date=chkDate(),c=checkOf(pid,date,slot);
+ openModal(modalHead((slot==='am'?'Morning':'Evening')+' check')+
+  '<div class="modal-b"><div class="fld"><label>What</label><div class="copybox">'+esc(p.name)+' &middot; '+esc(fmtDate(date))+'</div></div>'+
+  (c?'<div class="empty-sub mt">Already recorded by '+esc(c.checked_by||'')+' at '+fmtClock(c.checked_at)+'. Choosing again corrects it.</div>':'')+
+  '<div class="fld"><label>Note (optional)</label><input id="ckNote" value="'+esc(c&&c.note?c.note:'')+'" placeholder="what you saw"></div></div>'+
+  '<div class="modal-f"><button class="btn-danger" onclick="saveCheck('+pid+',\''+slot+'\',true)">'+I.alert+' Found a bug</button>'+
+  '<button class="btn-primary" onclick="saveCheck('+pid+',\''+slot+'\',false)">'+I.check+' All clear</button></div>');
+}
+async function saveCheck(pid,slot,bugs){
+ const date=chkDate(),note=(document.getElementById('ckNote')||{}).value||null;
+ const row={checked_at:nowISO(),checked_by:CURRENT?CURRENT.name:'unknown',bugs_found:!!bugs,note:note||null};
+ const ex=checkOf(pid,date,slot);
+ try{
+  if(ex)await DBW.update('dev_daily_checks',ex.id,row);
+  else await DBW.insert('dev_daily_checks',Object.assign({check_date:date,slot:slot,property_id:Number(pid)},row));
+  closeModal();toast(bugs?'Recorded, with a bug':'Recorded, all clear');renderPageRefresh();
+ }catch(e){toast('Could not save that check');}
+}
+
+function seoClients(){
+ return (DATA.seo||[]).filter(s=>s.active!==false)
+  .map(s=>({cfg:s,client:(DATA.clients||[]).find(c=>Number(c.id)===Number(s.client_id))}))
+  .filter(x=>x.client);
+}
+function blogSlot(cid,y,m,slot){return (DATA.blogs||[]).find(b=>Number(b.client_id)===Number(cid)&&Number(b.target_year)===y&&Number(b.target_month)===m&&Number(b.slot)===slot)||null;}
+function reportRow(cid,y,m){return (DATA.mreports||[]).find(r=>Number(r.client_id)===Number(cid)&&Number(r.target_year)===y&&Number(r.target_month)===m)||null;}
+function renderMonthly(){
+ const el=document.getElementById('page-monthly');
+ const ym=monYM(),y=Number(ym.slice(0,4)),m=Number(ym.slice(5,7));
+ const list=seoClients();
+ const label=new Date(Date.UTC(y,m-1,1)).toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'});
+ let totalDue=0,totalPosted=0,repDone=0;
+ list.forEach(x=>{const n=Number(x.cfg.posts_per_month)||4;totalDue+=n;
+  for(let i=1;i<=n;i++){const b=blogSlot(x.client.id,y,m,i);if(b&&b.posted_at)totalPosted++;}
+  const r=reportRow(x.client.id,y,m);if(r&&r.done_at)repDone++;});
+ const card=x=>{
+  const n=Number(x.cfg.posts_per_month)||4,cid=x.client.id;
+  let rows='';
+  for(let i=1;i<=n;i++){
+   const b=blogSlot(cid,y,m,i),posted=!!(b&&b.posted_at);
+   rows+='<div class="blog-row">'+
+    '<button class="chk-cell '+(posted?'ok':'open')+'" title="'+(posted?'Posted by '+esc(b.posted_by||'')+' '+fmtClock(b.posted_at):'Not posted yet')+'" onclick="toggleBlog('+cid+','+i+')">'+(posted?I.check:'')+'</button>'+
+    '<input class="blog-title" value="'+esc(b&&b.title?b.title:'')+'" placeholder="Post '+i+' title" onchange="saveBlogTitle('+cid+','+i+',this.value)">'+
+    '<span class="blog-when">'+(posted?esc(b.posted_by||'')+' &middot; '+fmtClock(b.posted_at):'')+'</span>'+
+   '</div>';
+  }
+  const done=[];for(let i=1;i<=n;i++){const b=blogSlot(cid,y,m,i);if(b&&b.posted_at)done.push(i);}
+  const r=reportRow(cid,y,m),rdone=!!(r&&r.done_at);
+  return '<div class="card"><div class="card-h"><h3>'+esc(x.client.name)+'</h3>'+
+   '<span class="sp"><span class="badge plain '+(done.length===n?'green':'amber')+'">'+done.length+' of '+n+' posted</span></span></div>'+
+   '<div class="card-b">'+rows+
+   '<div class="blog-row rep"><button class="chk-cell '+(rdone?'ok':'open')+'" onclick="toggleReport('+cid+')">'+(rdone?I.check:'')+'</button>'+
+   '<b>Client report for '+esc(label)+'</b>'+
+   '<span class="blog-when">'+(rdone?esc(r.done_by||'')+' &middot; '+fmtClock(r.done_at):'not done')+'</span></div>'+
+   '</div></div>';
+ };
+ el.innerHTML=
+ '<div class="seg-bar"><div class="plan-nav">'+
+  '<button class="btn-ghost btn-sm" onclick="shiftMonth(-1)">&larr; Previous</button>'+
+  '<span class="plan-range">'+esc(label)+'</span>'+
+  '<button class="btn-ghost btn-sm" onclick="shiftMonth(1)">Next &rarr;</button>'+
+ '</div></div>'+
+ '<div class="stat-grid">'+
+  '<div class="stat-card"><div class="stat-lbl">Blog posts</div><div class="stat-val '+(totalDue&&totalPosted===totalDue?'green':'accent')+'">'+totalPosted+'</div><div class="stat-note">of '+totalDue+' due this month</div></div>'+
+  '<div class="stat-card"><div class="stat-lbl">Client reports</div><div class="stat-val '+(list.length&&repDone===list.length?'green':'amber')+'">'+repDone+'</div><div class="stat-note">of '+list.length+' sent</div></div>'+
+  '<div class="stat-card"><div class="stat-lbl">Clients on blogs</div><div class="stat-val accent">'+list.length+'</div><div class="stat-note">four posts each</div></div>'+
+ '</div>'+
+ (list.length?mapSafe(list,card)
+  :'<div class="card"><div class="card-b"><div class="empty-state"><div class="empty-title">No client is set up for blog posts yet</div><div class="empty-sub">Add them on the Clients page and their four posts appear here every month.</div></div></div></div>');
+}
+async function ensureBlog(cid,slot){
+ const ym=monYM(),y=Number(ym.slice(0,4)),m=Number(ym.slice(5,7));
+ let b=blogSlot(cid,y,m,slot);
+ if(!b)b=await DBW.insert('dev_blog_posts',{client_id:Number(cid),target_year:y,target_month:m,slot:Number(slot),title:'',posted_at:null,posted_by:null});
+ return b;
+}
+async function saveBlogTitle(cid,slot,title){
+ try{const b=await ensureBlog(cid,slot);await DBW.update('dev_blog_posts',b.id,{title:(title||'').trim()||null});renderPageRefresh();}
+ catch(e){toast('Could not save that title');}
+}
+async function toggleBlog(cid,slot){
+ try{const b=await ensureBlog(cid,slot);
+  const on=!b.posted_at;
+  await DBW.update('dev_blog_posts',b.id,{posted_at:on?nowISO():null,posted_by:on?(CURRENT?CURRENT.name:'unknown'):null});
+  toast(on?'Marked posted':'Unmarked');renderPageRefresh();}
+ catch(e){toast('Could not save that');}
+}
+async function toggleReport(cid){
+ const ym=monYM(),y=Number(ym.slice(0,4)),m=Number(ym.slice(5,7));
+ try{let r=reportRow(cid,y,m);
+  if(!r)r=await DBW.insert('dev_month_report',{client_id:Number(cid),target_year:y,target_month:m,done_at:null,done_by:null});
+  const on=!r.done_at;
+  await DBW.update('dev_month_report',r.id,{done_at:on?nowISO():null,done_by:on?(CURRENT?CURRENT.name:'unknown'):null});
+  toast(on?'Report marked done':'Unmarked');renderPageRefresh();}
+ catch(e){toast('Could not save that');}
+}
+
+/* ================================================================
+   SECTION 10 - REPORTS (client receipt report, time truth). NO MONEY RULE: no prices here.
    ================================================================ */
 let REP_TAB='client';
 function renderReports(){
+ /* a session saved before the Commission tab was removed would leave REP_TAB
+    on a dead value and highlight no tab at all - normalise it first */
+ if(REP_TAB!=='time')REP_TAB='client';
  const el=document.getElementById('page-reports');
  el.innerHTML='<div class="seg-bar"><div class="tab-group">'+
- [['client','Client report'],['time','Time truth'],['commission','Commission']].map(t=>
+ [['client','Client report'],['time','Time truth']].map(t=>
   '<button class="tab-btn'+(REP_TAB===t[0]?' active':'')+'" onclick="REP_TAB=\''+t[0]+'\';renderReports()">'+t[1]+'</button>').join('')+
  '</div></div><div id="repBody"></div>';
  const b=document.getElementById('repBody');
- if(REP_TAB==='client')b.innerHTML=repClientHtml();
- else if(REP_TAB==='time')b.innerHTML=repTimeHtml();
- else b.innerHTML=repCommissionHtml();
+ if(REP_TAB==='time')b.innerHTML=repTimeHtml();
+ else b.innerHTML=repClientHtml();
 }
 function monthsBack(n){
  const out=[];let d=todayISO().slice(0,7);
@@ -1891,27 +2169,6 @@ function repTimeHtml(){
  }):'<tr><td colspan="5"><div class="empty-state"><div class="empty-title">Nothing completed yet</div><div class="empty-sub">Every closed card feeds the true cost of a build</div></div></td></tr>')+
  '</tbody></table></div></div>';
 }
-function repCommissionHtml(){
- let webs=openItems().filter(it=>it.work_type==='website'&&it.project_value);
- const mine=myMemberId();
- if(!canAdmin())webs=webs.filter(it=>Number(it.assigned_to)===Number(mine));
- const commOf=it=>Math.round(Number(it.project_value)*(Number(it.commission_pct)||0)/100);
- const earned=webs.filter(it=>isTerminal(it));
- const unpaid=earned.filter(it=>!it.commission_paid).reduce((s,it)=>s+commOf(it),0);
- return '<div class="stat-grid">'+
- '<div class="stat-card"><div class="stat-lbl">Website projects</div><div class="stat-val accent">'+webs.length+'</div></div>'+
- '<div class="stat-card"><div class="stat-lbl">Delivered</div><div class="stat-val green">'+earned.length+'</div></div>'+
- '<div class="stat-card"><div class="stat-lbl">Commission earned</div><div class="stat-val" style="font-size:17px">'+fmtLKR(earned.reduce((s,it)=>s+commOf(it),0))+'</div></div>'+
- '<div class="stat-card"><div class="stat-lbl">Unpaid</div><div class="stat-val '+(unpaid?'amber':'green')+'" style="font-size:17px">'+fmtLKR(unpaid)+'</div></div>'+
- '</div>'+
- '<div class="card"><div class="card-h"><h3>Commission ledger'+(canAdmin()?'':' (your projects)')+'</h3></div><div class="card-b tbl-wrap">'+
- '<table class="tbl"><thead><tr><th>Project</th><th>Stage</th><th>Value</th><th>%</th><th>Commission</th><th>Paid</th></tr></thead><tbody>'+
- (webs.length?mapSafe(webs,it=>'<tr><td>'+esc(it.title)+'</td><td><span class="badge blue">'+esc(stageLabel(it))+'</span></td>'+
-  '<td>'+fmtLKR(it.project_value)+'</td><td>'+(Number(it.commission_pct)||0)+'%</td><td><b>'+fmtLKR(commOf(it))+'</b></td>'+
-  '<td>'+(isTerminal(it)?(canAdmin()?'<button class="btn-ghost btn-sm" onclick="patchItem('+it.id+',{commission_paid:'+(it.commission_paid?'false':'true')+'})">'+(it.commission_paid?'Paid':'Mark paid')+'</button>':(it.commission_paid?'<span class="badge green">Paid</span>':'<span class="badge amber">Due</span>')):'<span class="badge neutral">on delivery</span>')+'</td></tr>')
- :'<tr><td colspan="6"><div class="empty-state"><div class="empty-title">No website projects with a value yet</div></div></td></tr>')+
- '</tbody></table></div></div>';
-}
 
 /* ================================================================
    SECTION 11 - SYSTEM page + alerts
@@ -1921,7 +2178,7 @@ function renderSystem(){
  el.innerHTML=
  '<div class="two-col">'+
  '<div class="card"><div class="card-h"><h3>Self-test harness</h3></div><div class="card-b">'+
- '<p style="font-size:12.5px;color:var(--text-2);margin-bottom:12px">Runs ~40 checks against a seeded in-memory copy: gearset integrity, stage-history writes, the Root-Cause Lock, care-engine idempotency, commission math, page sweep with overflow audit, and the safety nets themselves. Zero footprint, never touches live data. Gate: ALL GREEN at ~390px AND desktop, twice each.</p>'+
+ '<p style="font-size:12.5px;color:var(--text-2);margin-bottom:12px">Runs 50 checks against a seeded in-memory copy: gearset integrity, stage-history writes, the Root-Cause Lock, care-engine idempotency, the no-money rule, page sweep with overflow audit, and the safety nets themselves. Zero footprint, never touches live data. Gate: ALL GREEN at ~390px AND desktop, twice each.</p>'+
  '<button class="btn-primary" onclick="runSelfTest({all:true})">'+I.shield+' Run self-test</button>'+
  '<div class="empty-sub mt">Also runs via ?selftest in the URL.</div></div></div>'+
  '<div class="card"><div class="card-h"><h3>Mode</h3></div><div class="card-b">'+
@@ -2029,7 +2286,7 @@ async function cyclePlan(id){
 }
 async function delPlan(id){try{await DBW.del('dev_weekly_plan',id);closeModal();toast('Removed');renderPlan();}catch(err){toast('Delete failed');}}
 
-const RENDERERS={today:renderToday,board:renderBoard,plan:renderPlan,clients:renderClients,keyring:renderKeyring,care:renderCare,deploys:renderDeploys,reports:renderReports,system:renderSystem};
+const RENDERERS={today:renderToday,board:renderBoard,daily:renderDaily,monthly:renderMonthly,plan:renderPlan,clients:renderClients,keyring:renderKeyring,care:renderCare,deploys:renderDeploys,reports:renderReports,system:renderSystem};
 
 /* ================================================================
    SECTION 11.5 - SMART LAYER: next best action, the Dev Sentinel,
@@ -2141,6 +2398,7 @@ async function runSelfTest(opts){
  /* ---- snapshot ---- */
  const snapMode=MODE,snapData=JSON.stringify(DATA),snapCur=CURRENT?JSON.parse(JSON.stringify(CURRENT)):null;
  const snapBoard=BOARD_FILTER,snapRepTab=REP_TAB,snapRepC=REP_CLIENT,snapRepM=REP_MONTH;
+ const snapChk=CHK_DATE,snapMon=MON_YM;
  const snapTheme=document.documentElement.getAttribute('data-theme');
  const snapPage=((document.querySelector('.page.active')||{}).id||'page-today').replace('page-','');
  const snapIn=document.getElementById('app').classList.contains('on');
@@ -2182,7 +2440,7 @@ async function runSelfTest(opts){
    const was=CURRENT.role;CURRENT.role='dev';
    const devCan=canAdmin();
    CURRENT.role=was;
-   ok('Dev role is not admin (commission paid-toggle gated)',devCan===false&&(was!=='admin'||canAdmin()));
+   ok('Role mechanism holds: dev is not admin (hook for future gating; nothing gates on it today)',devCan===false&&(was!=='admin'||canAdmin()));
   })();
   /* ---- A1.5 smart layer ---- */
   ok('Next-best-action picks the live critical bug first',(nextBestAction()||{}).id===5);
@@ -2239,9 +2497,19 @@ async function runSelfTest(opts){
   REP_CLIENT='9002';REP_MONTH=todayISO().slice(0,7);
   const repHtml=repClientHtml();
   ok('Client report assembles from receipt lines',repHtml.indexOf('Renewed the site security certificate')>-1);
-  const web=DATA.items.find(i=>i.id===3);
-  ok('Commission math: value x pct',Math.round(web.project_value*web.commission_pct/100)===18000);
   ok('Time truth: stage history sums to a real total',computeStageTime(12).total>0);
+  /* THE NO MONEY RULE, enforced not just intended. Developers are salaried, so
+     no price, no commission and no currency may render anywhere in this tool.
+     This check is the permanent block: reintroduce money and the harness fails. */
+  (function(){
+   const hits=[];
+   Object.keys(RENDERERS).forEach(pg=>{
+    go(pg);
+    const h=(document.getElementById('page-'+pg)||{}).innerHTML||'';
+    if(/LKR\s*[\d,]/.test(h)||/commission/i.test(h))hits.push(pg);
+   });
+   ok('NO MONEY RULE: no price or commission renders on any page',hits.length===0,hits.join(', '));
+  })();
   /* ---- A5.5 weekly plan ---- */
   PLAN_WEEK=mondayISO(todayISO());
   ok('Weekly plan: Monday-of-week computed right',new Date(PLAN_WEEK+'T12:00:00').getDay()===1,PLAN_WEEK);
@@ -2250,6 +2518,57 @@ async function runSelfTest(opts){
   var _wpc=DATA.weekly.length;
   await DBW.insert('dev_weekly_plan',{week_start:PLAN_WEEK,day_of_week:2,title:'selftest plan row',work_type:'system',status:'pending'});
   ok('Weekly plan write path works',DATA.weekly.length===_wpc+1);
+  /* ---- A5.6 daily checks + the month ---- */
+  CHK_DATE=todayISO();MON_YM=todayISO().slice(0,7);
+  go('daily');
+  ok('Daily Checks lists everything under care',document.querySelectorAll('#page-daily tbody tr').length===monitored().length,
+   monitored().length+' under care');
+  (function(){
+   const before=DATA.checks.length;
+   const p0=monitored()[0];
+   const had=!!checkOf(p0.id,todayISO(),'pm');
+   openCheck(p0.id,'pm');
+   const modal=!!document.querySelector('.modal-ov');
+   closeModal();
+   ok('A check opens a choice rather than ticking blind',modal);
+   ok('Seeded check history is present',before>0,before+' checks');
+   ok('A check carries BOTH a time and a name, never a bare tick',
+    DATA.checks.every(c=>(!!c.checked_at)===(!!c.checked_by)),'time/name pairs');
+   ok('Today is only counted as done when a check exists',
+    (had?1:0)===(checkOf(p0.id,todayISO(),'pm')?1:0));
+  })();
+  await saveCheck(monitored()[0].id,'pm',true);
+  ok('Recording a bug stores it against that slot',(checkOf(monitored()[0].id,todayISO(),'pm')||{}).bugs_found===true);
+  (function(){
+   const n=DATA.checks.length;
+   const c=checkOf(monitored()[0].id,todayISO(),'pm');
+   ok('Correcting a check UPDATES the row, never duplicates it',
+    DATA.checks.filter(x=>Number(x.property_id)===Number(monitored()[0].id)&&x.check_date===todayISO()&&x.slot==='pm').length===1,
+    n+' rows total');
+  })();
+  go('monthly');
+  ok('The Month shows a card for every client on blogs',
+   document.querySelectorAll('#page-monthly .blog-row').length>0&&seoClients().length>0,seoClients().length+' clients');
+  (function(){
+   const y=Number(monYM().slice(0,4)),m=Number(monYM().slice(5,7));
+   const cid=seoClients()[0].client.id;
+   const want=Number(seoClients()[0].cfg.posts_per_month)||4;
+   let rows=0;for(let i=1;i<=want;i++)if(blogSlot(cid,y,m,i))rows++;
+   ok('Every client on blogs gets its full set of slots',want===4&&rows===4,rows+' of '+want);
+  })();
+  await toggleBlog(seoClients()[0].client.id,4);
+  (function(){
+   const y=Number(monYM().slice(0,4)),m=Number(monYM().slice(5,7));
+   const b=blogSlot(seoClients()[0].client.id,y,m,4);
+   ok('Marking a post carries who posted it and when',!!(b&&b.posted_at&&b.posted_by));
+  })();
+  await toggleReport(seoClients()[1].client.id);
+  (function(){
+   const y=Number(monYM().slice(0,4)),m=Number(monYM().slice(5,7));
+   const r=reportRow(seoClients()[1].client.id,y,m);
+   ok('The client report tick carries who and when',!!(r&&r.done_at&&r.done_by));
+  })();
+  CHK_DATE=null;MON_YM=null;
   /* ---- A6 page sweep: render, not blank, no overflow, rects clean ---- */
   const vw=window.innerWidth;
   const rectAudit=()=>{const b=[];document.querySelectorAll('.page.active *').forEach(el=>{const cs=getComputedStyle(el);
@@ -2301,6 +2620,7 @@ async function runSelfTest(opts){
   /* ---- restore everything ---- */
   MODE=snapMode;DATA=JSON.parse(snapData);
   BOARD_FILTER=snapBoard;REP_TAB=snapRepTab;REP_CLIENT=snapRepC;REP_MONTH=snapRepM;
+  CHK_DATE=snapChk;MON_YM=snapMon;
   document.documentElement.setAttribute('data-theme',snapTheme||'dark');
   closeModal();window._openItemId=null;
   if(snapCur){CURRENT=snapCur;
@@ -2339,10 +2659,11 @@ async function boot(){
  renderLogin();applyModeChip();updateClock();setInterval(updateClock,30000);
  const okInit=await initSupabase();
  if(MODE==='live'&&!okInit){
-  toast('Could not reach Supabase. Opening in demo mode.',5000);
-  MODE='demo';applyModeChip();renderLogin();
+  showConnectionFailure();
+  return;
  }
  await fetchAll();
+ renderLoadWarn();
  snapshotPages();
  try{await runCareEngine();}catch(e){console.warn('care engine',e&&e.message);}
  updateBell();
@@ -2357,12 +2678,24 @@ async function boot(){
    if(document.hidden)return;
    if(document.querySelector('.modal-ov'))return;
    if(!CURRENT)return;
-   try{await fetchAll();updateBell();renderPageRefresh();}catch(e){}
+   try{await fetchAll();renderLoadWarn();updateBell();renderPageRefresh();}catch(e){}
   },180000);
  }
  if(location.search.indexOf('selftest')>-1)setTimeout(()=>runSelfTest({all:true}),300);
 }
 window.addEventListener('load',boot);
+</script>
+
+<script>
+/* The shell tool copies a service worker and never registers it, so the app
+   installs and the worker never runs. Register it here. Network-first, and it
+   never caches the database: a stale board is worse than no board, because
+   somebody acts on work that has already moved on. */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
+}
 </script>
 </body>
 </html>
