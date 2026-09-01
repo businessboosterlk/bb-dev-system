@@ -25,9 +25,31 @@ to this system. Check `initSupabase` before assuming any BB system's posture.
 
 ---
 
-## L-DEV-002 — A shared Supabase Auth credential is hardcoded in source.
+## L-DEV-002 — CLOSED 2026-09-01. The shared credential is gone from the file.
 
-**Status: OPEN. Needs Thulaib. Do not enable GitHub Pages until this is resolved.**
+**Status: FIXED. The file is now safe to publish.**
+
+`APP_AUTH` and the four name+PIN logins have been deleted. Each person signs in with their
+own Supabase account, typed at the login screen and never stored, and their name and level
+come from the new `dev_users` table (self-read only, so the roster is not a directory).
+`initSupabase()` no longer authenticates anything; it only builds the client.
+
+**The migration trap, and the guard for it.** Browsers that used the old build still held the
+shared `nirvana` session in local storage, and `getSession()` returned it — so removing the
+constant alone would have walked those users straight in as the shared account. Boot now
+accepts a stored session ONLY if its user has a `dev_users` row, and calls `signOut()`
+otherwise. Verified: a browser carrying the old session lands on the login screen with zero
+rows loaded. Removing a credential is not finished until the sessions it minted are dead.
+
+Verified: `guard.py` PASSES for the first time (L-015 and L-006 both clear), no password
+string remains anywhere in the file, wrong password refused, account with no `dev_users` row
+refused, nothing fetched before sign-in, harness 63/63 twice at 390px and 1280px.
+
+Seeded in `dev_users`: THULAIB and SHIARA, from their existing `bb-leads.app` accounts.
+**KISHINI and HIRAN have no Supabase account yet** and cannot sign in until Thulaib creates
+them in the dashboard and their `dev_users` rows are added.
+
+The ORIGINAL finding, kept for the record:
 
 index.html:525
 ```
