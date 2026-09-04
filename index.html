@@ -2743,5 +2743,210 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
+<!-- @@BB_PUSH_BEGIN@@ -->
+<script>
+/* ════════════════════════════════════════════════════════════════════════════
+   BB PUSH CLIENT (hub build 2026-09-04). Identical block in every BB app.
+   Turns this installed app into something that can be alerted when work
+   moves: the person taps "Turn on alerts" once, the phone's push address is
+   registered against their team_members row through the bb-push edge
+   function, and from then on the database trigger + queue + sender do the
+   rest with no code in this page involved.
+
+   THREE RULES THAT ARE NOT PREFERENCES
+   1. Permission is asked ONLY after a tap. A page that asks on load gets
+      denied, and a denial is permanent on iPhone.
+   2. On iPhone, push works ONLY when the app is on the Home Screen. A Safari
+      tab gets nothing, ever. So the first thing this shows on iOS-in-a-tab is
+      the install hint, not the permission button.
+   3. This page never reads a push endpoint back. It writes its own and that
+      is all. Endpoints are addresses for other people's phones.
+   Console: BBPUSH.status()  BBPUSH.enable()  BBPUSH.test()
+   ════════════════════════════════════════════════════════════════════════ */
+var BBPUSH=(function(){
+  var APP='dev-system';
+  var FN='https://yyviiwnqgphyklcoijyd.supabase.co/functions/v1/bb-push';
+  function name(){ try{ var n=(typeof CURRENT!=='undefined'&&CURRENT&&CURRENT.name); return n?String(n):''; }catch(e){ return ''; } }
+  function sbUrl(){ return SB_URL; }
+  function sbKey(){ return SB_KEY; }
+  var memberId=null, banner=null, tries=0, registered=false, lastError='';
+  function isIOS(){ return /iPhone|iPad|iPod/.test(navigator.userAgent); }
+  function standalone(){ return (window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }
+  function supported(){ return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
+  function b64ToU8(b){ var p='='.repeat((4-b.length%4)%4); var s=(b+p).replace(/-/g,'+').replace(/_/g,'/'); var r=atob(s); var a=new Uint8Array(r.length); for(var i=0;i<r.length;i++) a[i]=r.charCodeAt(i); return a; }
+  async function resolveMember(){
+    if(memberId) return memberId;
+    var n=name(); if(!n) return null;
+    var r=await fetch(sbUrl()+'/rest/v1/team_members?select=id&active=eq.true&name=ilike.'+encodeURIComponent(n)+'&limit=1',{headers:{apikey:sbKey(),Authorization:'Bearer '+sbKey()}});
+    var d=await r.json(); memberId=(d&&d[0]&&d[0].id)||null; return memberId;
+  }
+  async function subscribe(){
+    var reg=await navigator.serviceWorker.ready;
+    var kr=await fetch(FN+'?action=public-key'); var k=(await kr.json()).publicKey;
+    var sub=await reg.pushManager.getSubscription();
+    if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(k)});
+    var m=await resolveMember(); if(!m) throw new Error('no active team member row named '+name());
+    var j=sub.toJSON();
+    var res=await fetch(FN+'?action=subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({team_member_id:m,app:APP,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,ua:navigator.userAgent})});
+    var out=await res.json(); if(!res.ok) throw new Error(out.error||'subscribe failed');
+    try{ localStorage.setItem('bbpush_ok_'+APP,String(Date.now())); }catch(e){}
+    return out;
+  }
+  function say(t){ try{ if(typeof toast==='function'){ toast(t); return; } }catch(e){} console.log('[BBPUSH]',t); }
+  function hide(){ if(banner){ banner.remove(); banner=null; } }
+  function dismiss(){ try{ localStorage.setItem('bbpush_dismiss_'+APP,String(Date.now())); }catch(e){} hide(); }
+  function dismissed(){ try{ var t=+localStorage.getItem('bbpush_dismiss_'+APP)||0; return (Date.now()-t)<7*864e5; }catch(e){ return false; } }
+  async function enable(){
+    var p=await Notification.requestPermission();
+    if(p!=='granted'){ hide(); return false; }
+    await subscribe(); registered=true; hide(); say('Phone alerts are on'); pill(); return true;
+  }
+  function show(kind){
+    if(banner||!document.body) return;
+    banner=document.createElement('div'); banner.id='bbpush-banner'; banner.setAttribute('role','status');
+    banner.style.cssText='position:fixed;left:12px;right:12px;top:calc(var(--sat,0px) + 10px);z-index:99999;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--bg3,#15171c);color:var(--text,#fff);border:1px solid var(--border,#2a2d35);box-shadow:0 8px 24px rgba(0,0,0,.35);font-size:13px;font-weight:600;line-height:1.3;font-family:inherit';
+    var msg=document.createElement('div'); msg.style.flex='1';
+    var btn=document.createElement('button'); btn.type='button';
+    btn.style.cssText='border:0;border-radius:8px;padding:8px 12px;font-weight:800;font-size:12px;cursor:pointer;background:var(--accent,#00E5FF);color:#0b1014;white-space:nowrap';
+    var x=document.createElement('button'); x.type='button'; x.textContent='×'; x.setAttribute('aria-label','Not now');
+    x.style.cssText='border:0;background:transparent;color:inherit;opacity:.6;font-size:18px;cursor:pointer;padding:0 4px'; x.onclick=dismiss;
+    if(kind==='error'){
+      msg.textContent='Alerts could not be turned on: '+lastError;
+      btn.textContent='Try again'; btn.onclick=function(){ hide(); lastError=''; boot(); };
+    } else if(kind==='install'){
+      msg.textContent='Get phone alerts: add this app to your Home Screen first (Share, then Add to Home Screen).';
+      btn.textContent='OK'; btn.onclick=dismiss;
+    } else {
+      msg.textContent='Get a phone alert when work moves to you.';
+      btn.textContent='Turn on alerts';
+      btn.onclick=function(){ btn.disabled=true; btn.textContent='Turning on'; enable().catch(function(e){ btn.disabled=false; btn.textContent='Turn on alerts'; say('Could not turn on alerts: '+(e&&e.message||e)); }); };
+    }
+    banner.appendChild(msg); banner.appendChild(btn); banner.appendChild(x); document.body.appendChild(banner);
+  }
+  async function boot(){
+    if(!supported()) return;
+    if(!name()){ if(tries++<200) setTimeout(boot,3000); return; }   /* wait for login, up to ten minutes */
+    pill();
+    if(Notification.permission==='denied') return;
+    if(isIOS()&&!standalone()){ if(!dismissed()) show('install'); return; }
+    if(Notification.permission==='granted'){ try{ await subscribe(); registered=true; }catch(e){ lastError=String(e&&e.message||e); console.warn('[BBPUSH] register failed',e); show('error'); } pill(); return; }
+    if(!dismissed()) show('ask');
+  }
+  var pillEl=null;
+  function pill(){
+    if(!supported()||!document.body) return;
+    if(!pillEl){ pillEl=document.createElement('button'); pillEl.type='button'; pillEl.id='bbpush-pill';
+      pillEl.style.cssText='position:fixed;left:12px;bottom:calc(var(--sab,0px) + 12px);z-index:99998;border:1px solid var(--border,#2a2d35);border-radius:999px;padding:6px 10px;font-size:11px;font-weight:700;background:var(--bg3,#15171c);color:var(--text3,#9aa3ad);cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3);font-family:inherit';
+      pillEl.onclick=async function(){
+        if(registered){ pillEl.textContent='Sending test'; try{ var r=await test(); pillEl.textContent=(r&&r.sent)?'Test sent':'Test failed: '+(r&&r.error||'no phone'); }catch(e){ pillEl.textContent='Test failed: '+(e&&e.message||e); } setTimeout(pill,4000); return; }
+        if(isIOS()&&!standalone()){ show('install'); return; }
+        hide(); try{ pillEl.textContent='Turning on'; await enable(); registered=true; }catch(e){ lastError=String(e&&e.message||e); show('error'); } pill();
+      };
+      document.body.appendChild(pillEl); }
+    var p=('Notification' in window)?Notification.permission:'n/a';
+    if(registered){ pillEl.textContent='Alerts on · tap to test'; pillEl.style.color='var(--accent,#00E5FF)'; }
+    else if(p==='denied'){ pillEl.textContent='Alerts blocked in Settings'; }
+    else if(isIOS()&&!standalone()){ pillEl.textContent='Alerts need Home Screen install'; }
+    else if(lastError){ pillEl.textContent='Alerts failed · tap to retry'; }
+    else { pillEl.textContent='Alerts off · tap to turn on'; }
+  }
+  async function diagnose(){
+    var L=[]; function add(s,ok,d){ L.push((ok?'PASS ':'FAIL ')+s+(d?': '+d:'')); }
+    try{ add('Push supported by this browser', supported(), supported()?'':'open from the Home Screen icon on iPhone'); }catch(e){ add('Push supported',false,String(e)); }
+    add('Running as installed app', standalone(), standalone()?'':'browser tab');
+    add('Signed in as', !!name(), name()||'nobody yet');
+    try{ var m=await resolveMember(); add('Team record found', !!m, m?('id '+m):('no active team member named '+name())); }catch(e){ add('Team record lookup',false,String(e&&e.message||e)); }
+    try{ var reg=await Promise.race([navigator.serviceWorker.ready, new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('timed out after 8s')); },8000); })]); add('Service worker ready', !!reg, reg&&reg.scope); }catch(e){ add('Service worker ready',false,String(e&&e.message||e)); }
+    try{ var kr=await fetch(FN+'?action=public-key'); var k=await kr.json(); add('Server key fetched', !!k.publicKey, k.publicKey?(k.publicKey.length+' chars'):JSON.stringify(k)); }catch(e){ add('Server key fetched',false,String(e&&e.message||e)); }
+    add('Notification permission', ('Notification' in window)&&Notification.permission==='granted', ('Notification' in window)?Notification.permission:'API absent');
+    try{ var r2=await navigator.serviceWorker.ready; var sub=await r2.pushManager.getSubscription(); add('Phone subscription exists', !!sub, sub?(sub.endpoint.slice(0,40)+'…'):'none yet'); }catch(e){ add('Phone subscription',false,String(e&&e.message||e)); }
+    add('Registered with server', registered, lastError||'');
+    return L;
+  }
+  function status(){ return { app:APP, supported:supported(), permission:('Notification' in window)?Notification.permission:'n/a', ios:isIOS(), standalone:standalone(), user:name(), memberId:memberId, registered:registered, lastError:lastError }; }
+  async function test(){
+    var m=await resolveMember(); if(!m) throw new Error('no team member row for '+name());
+    var r=await fetch(FN+'?action=test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({team_member_id:m,title:'BB test alert',body:'If you can read this, phone alerts work.',url:location.href})});
+    return r.json();
+  }
+  window.addEventListener('load',function(){ setTimeout(boot,2500); });
+  return { enable:enable, test:test, status:status, boot:boot, diagnose:diagnose };
+})();
+</script>
+<!-- @@BB_PUSH_END@@ -->
+<!-- @@BB_SETTINGS_BEGIN@@ -->
+<script>
+/* ════════════════════════════════════════════════════════════════════════════
+   BB SETTINGS (hub build 2026-09-04). Identical sheet in every BB app.
+   One place a person goes to: turn alerts on, send themselves a test, see
+   whether the app is installed, reload to the latest build, sign out.
+   It is injected into each app's own navigation by cloning the last real
+   nav item, so it inherits that app's look without a line of app CSS.
+   ════════════════════════════════════════════════════════════════════════ */
+var BBSET=(function(){
+  var APP_LABEL='Dev System', ACCENT='#0b0c0f';
+  var GEAR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+  var sheet=null, back=null;
+  function standalone(){ return (window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }
+  function isIOS(){ return /iPhone|iPad|iPod/.test(navigator.userAgent); }
+  function logoutFn(){ return (typeof logout==='function')?logout:(typeof signOut==='function')?signOut:null; }
+  function row(label, value){ return '<div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--border,#2a2d35);font-size:13px"><span style="color:var(--text3,#9aa3ad)">'+label+'</span><span style="font-weight:700;text-align:right">'+value+'</span></div>'; }
+  function btn(label, onclick, primary){ return '<button type="button" onclick="'+onclick+'" style="border:'+(primary?'0':'1px solid var(--border,#2a2d35)')+';border-radius:10px;padding:10px 14px;font-weight:800;font-size:12px;cursor:pointer;background:'+(primary?ACCENT:'transparent')+';color:'+(primary?'#0b1014':'var(--text,#fff)')+';font-family:inherit">'+label+'</button>'; }
+  function card(title, body){ return '<div style="background:var(--bg3,#15171c);border:1px solid var(--border,#2a2d35);border-radius:14px;padding:14px 16px;margin-bottom:12px"><div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:'+ACCENT+';margin-bottom:6px">'+title+'</div>'+body+'</div>'; }
+  function render(){
+    var st=(typeof BBPUSH!=='undefined'&&BBPUSH.status)?BBPUSH.status():{};
+    var alertsLine = st.registered ? 'On for this phone' : (st.permission==='denied' ? 'Blocked in phone Settings' : (st.ios&&!st.standalone ? 'Needs Home Screen install' : 'Off'));
+    var alertsBtns = st.registered ? btn('Send a test alert','BBSET.test()',true) : (st.ios&&!st.standalone ? '' : btn('Turn on alerts','BBSET.enable()',true));
+    var html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><div><div style="font-size:18px;font-weight:800">Settings</div><div style="font-size:11px;color:var(--text3,#9aa3ad)">'+APP_LABEL+'</div></div><button type="button" onclick="BBSET.close()" aria-label="Close" style="border:0;background:transparent;color:inherit;font-size:22px;cursor:pointer;padding:4px 8px">×</button></div>';
+    html+=card('Phone alerts', row('Status',alertsLine)+row('Quiet hours','9pm to 7am, held until 7am')+'<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">'+alertsBtns+btn('Run diagnostics','BBSET.diag()',false)+'</div><pre id="bbset-diag" style="display:none;white-space:pre-wrap;font-size:11px;line-height:1.5;margin:10px 0 0;padding:10px;border-radius:8px;background:var(--bg,#0c0d10);color:var(--text,#fff)"></pre>'+(st.lastError?'<div style="margin-top:8px;font-size:11px;color:#f87171">'+st.lastError+'</div>':''));
+    html+=card('Installed as an app', row('This device', standalone()?'Yes':'No, running in the browser')+(!standalone()?'<div style="margin-top:8px;font-size:12px;color:var(--text3,#9aa3ad)">'+(isIOS()?'Share, then Add to Home Screen. Alerts only work from the installed app.':'Use your browser menu, then Add to Home screen.')+'</div>':''));
+    html+=card('Account', row('Signed in as', st.user||'Not signed in')+(logoutFn()?'<div style="margin-top:12px">'+btn('Sign out','BBSET.signout()',false)+'</div>':''));
+    html+=card('App', row('Build', document.lastModified||'')+'<div style="margin-top:12px">'+btn('Reload latest version','BBSET.reload()',false)+'</div>');
+    sheet.innerHTML=html;
+  }
+  function open(){
+    if(!sheet){
+      back=document.createElement('div'); back.id='bbset-back'; back.onclick=close;
+      back.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100000;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)';
+      sheet=document.createElement('div'); sheet.id='bbset-sheet'; sheet.setAttribute('role','dialog'); sheet.setAttribute('aria-label','Settings');
+      sheet.style.cssText='position:fixed;left:0;right:0;bottom:0;max-height:88vh;overflow:auto;overscroll-behavior:contain;z-index:100001;background:var(--bg2,#101216);color:var(--text,#fff);border-radius:18px 18px 0 0;padding:16px 16px calc(var(--sab,0px) + 20px);box-shadow:0 -12px 40px rgba(0,0,0,.5);font-family:inherit';
+      var mq=window.matchMedia&&window.matchMedia('(min-width: 861px)');
+      if(mq&&mq.matches){ sheet.style.cssText+=';left:auto;right:24px;bottom:auto;top:calc(var(--sat,0px) + 24px);width:380px;border-radius:18px'; }
+      document.body.appendChild(back); document.body.appendChild(sheet);
+    }
+    render(); back.style.display='block'; sheet.style.display='block';
+  }
+  function close(){ if(sheet){ sheet.style.display='none'; back.style.display='none'; } }
+  async function enable(){ try{ await BBPUSH.enable(); }catch(e){} render(); }
+  async function test(){ try{ var r=await BBPUSH.test(); alert(r&&r.sent?'Test sent. Check your phone.':'Nothing sent: '+(r&&r.error||'no phone registered')); }catch(e){ alert('Test failed: '+(e&&e.message||e)); } }
+  async function diag(){ var el=document.getElementById('bbset-diag'); if(!el) return; el.style.display='block'; el.textContent='Checking'; try{ var L=await BBPUSH.diagnose(); el.textContent=L.join('\n'); }catch(e){ el.textContent='Diagnostics failed: '+(e&&e.message||e); } }
+  function signout(){ var f=logoutFn(); close(); if(f) f(); }
+  async function reload(){
+    try{ if('serviceWorker' in navigator){ var rs=await navigator.serviceWorker.getRegistrations(); for(var i=0;i<rs.length;i++) await rs[i].unregister(); } if(window.caches){ var ks=await caches.keys(); for(var j=0;j<ks.length;j++) await caches.delete(ks[j]); } }catch(e){}
+    location.reload();
+  }
+  /* Put "Settings" into this app's own navigation by cloning its last nav
+     item, so it looks native. The clone loses its data attributes and id,
+     gets the gear and the label, and opens the sheet. */
+  function inject(){
+    if(document.getElementById('bbset-nav')) return true;
+    var items=document.querySelectorAll('.sb-nav .nav-item');
+    var host=null;
+    if(items.length){ var last=items[items.length-1]; var el=last.cloneNode(true); el.id='bbset-nav'; el.removeAttribute('data-page'); el.removeAttribute('onclick'); el.classList.remove('active');
+      var svg=el.querySelector('svg'); if(svg){ svg.outerHTML=GEAR; }
+      var textNodes=[]; (function walk(n){ for(var i=0;i<n.childNodes.length;i++){ var c=n.childNodes[i]; if(c.nodeType===3&&c.textContent.trim()) textNodes.push(c); else if(c.nodeType===1&&c.tagName!=='svg') walk(c); } })(el);
+      if(textNodes.length){ textNodes[0].textContent='Settings'; for(var k=1;k<textNodes.length;k++) textNodes[k].textContent=''; } else { el.appendChild(document.createTextNode('Settings')); }
+      el.onclick=function(ev){ ev.preventDefault(); open(); };
+      last.parentNode.appendChild(el); return true; }
+    host=document.querySelector('.sidebar-footer');
+    if(host){ var d=document.createElement('div'); d.id='bbset-nav'; d.style.cssText='display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;color:var(--text3,#9aa3ad);font-size:13px;font-weight:600'; d.innerHTML=GEAR+'<span>Settings</span>'; d.onclick=open; host.insertBefore(d, host.firstChild); return true; }
+    return false;
+  }
+  var tries=0; function boot(){ if(!inject() && tries++<60) setTimeout(boot,2000); }
+  window.addEventListener('load',function(){ setTimeout(boot,1500); });
+  return { open:open, close:close, enable:enable, test:test, signout:signout, reload:reload, inject:inject, diag:diag };
+})();
+</script>
+<!-- @@BB_SETTINGS_END@@ -->
 </body>
 </html>
