@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
 <style>
 /* ================================================================
    BB DEV OS - single-file internal system
@@ -548,13 +548,78 @@ window.__ST_LOG=[];
  const ce=console.error.bind(console),cw=console.warn.bind(console);
  console.error=function(){rec('error',arguments);ce.apply(null,arguments);};
  console.warn=function(){rec('warn',arguments);cw.apply(null,arguments);};
- window.addEventListener('error',e=>rec('uncaught',[e.message||e.type]));
+ window.addEventListener('error',e=>{const m=e.message||e.type;rec('uncaught',[m]);
+  try{reportBug({category:'uncaught',severity:'error',message:m,
+   detail:(e.filename||'')+' line '+(e.lineno||'')});}catch(_){}});
  /* L-006: a dropped wifi packet is not a defect. Network noise is filtered out
     BEFORE it is recorded, because two harness checks read this log and a false
     red on the fleet's only harness is worse than no harness. */
  const isNetworkBlip=m=>/failed to fetch|networkerror|network request failed|load failed|the internet connection appears/i.test(String(m||''));
- window.addEventListener('unhandledrejection',e=>{const m=e.reason&&e.reason.message||String(e.reason);if(isNetworkBlip(m))return;rec('rejection',[m]);});
+ window.addEventListener('unhandledrejection',e=>{const m=e.reason&&e.reason.message||String(e.reason);
+   if(isNetworkBlip(m)){try{reportBug({category:'network',severity:'info',message:m});}catch(_){}return;}
+   rec('rejection',[m]);try{reportBug({category:'rejection',severity:'error',message:m});}catch(_){}});
 })();
+
+
+/* ================================================================
+   SECTION 0.6 - THE BUG CATCHER (shape taken from the Video System)
+   Writes to system_bug_log and bb_harness_runs by raw REST, deliberately
+   NOT through the app's own client, so a broken sign-in still reports.
+   Three rules, each one a fault this estate has already paid for:
+     - a developer's localhost preview is not a live fault
+     - a dropped connection is weather, so it collapses to ONE row per
+       app per ten minutes keyed on app plus CATEGORY, never per table
+     - a network blip must never colour the harness red (L-DEV-005)
+   ================================================================ */
+const BUG_APP='dev-system';
+const _bugSeen={},BUG_DEDUPE_MS=10*60*1000;
+function isLocalPreview(){
+ const h=location.hostname;
+ return h==='localhost'||h==='127.0.0.1'||h===''||h.endsWith('.local');
+}
+function isNetworkNoise(m){
+ return /failed to fetch|networkerror|network request failed|load failed|the internet connection appears/i.test(String(m||''));
+}
+function reportBug(issue){
+ try{
+  if(isLocalPreview())return;
+  const netty=isNetworkNoise(issue.message)||isNetworkNoise(issue.detail);
+  /* network faults key on app plus category ONLY, so twenty tables dropping
+     at once is one row rather than a storm */
+  const key=netty?(BUG_APP+'|net|'+(issue.category||''))
+                 :((issue.category||'')+'|'+(issue.table_name||'')+'|'+String(issue.message||'').slice(0,120));
+  const now=Date.now();
+  if(_bugSeen[key]&&(now-_bugSeen[key])<BUG_DEDUPE_MS)return;
+  _bugSeen[key]=now;
+  fetch(SB_URL+'/rest/v1/system_bug_log',{method:'POST',
+   headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+   body:JSON.stringify({app:BUG_APP,
+    severity:issue.severity||(netty?'info':'error'),
+    category:netty?'network':(issue.category||null),
+    table_name:netty?null:(issue.table_name||null),
+    message:String(issue.message||'').slice(0,500),
+    detail:String(issue.detail||'').slice(0,2000),
+    user_name:(CURRENT&&CURRENT.name)||'signed out',
+    url:location.href.slice(0,300),
+    user_agent:(navigator.userAgent||'').slice(0,300)})}).catch(function(){});
+ }catch(e){}
+}
+/* one silent harness run per person per day, so a red check on somebody's
+   phone is seen by the hub within the hour and a silent day is itself a signal */
+async function maybeRunHarness(){
+ try{
+  if(MODE==='demo'||!CURRENT)return;
+  const k='bb_dev_harness_'+CURRENT.name+'_'+todayISO();
+  if(localStorage.getItem(k))return;
+  localStorage.setItem(k,'1');
+  const r=await runSelfTest({all:true,silent:true});
+  await fetch(SB_URL+'/rest/v1/bb_harness_runs',{method:'POST',
+   headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+   body:JSON.stringify({app:BUG_APP,checks:r.results.length,failed:r.failed.length,
+    failed_names:r.failed.map(f=>String(f.name).slice(0,120)),
+    width:r.viewport,user_name:CURRENT.name,url:location.href.slice(0,300)})}).catch(function(){});
+ }catch(e){}
+}
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function mapSafe(arr,fn){
@@ -954,7 +1019,7 @@ let LOAD_FAILED=[];
 async function fetchAll(){
  if(MODE==='demo'){DATA=seedData();LOAD_FAILED=[];return;}
  LOAD_FAILED=[];
- const q=(t,sel,mod)=>{let x=sb.from(t).select(sel);if(mod)x=mod(x);return x.then(r=>{if(r.error){console.warn('load '+t,r.error.message);LOAD_FAILED.push(t);return [];}return r.data||[];});};
+ const q=(t,sel,mod)=>{let x=sb.from(t).select(sel);if(mod)x=mod(x);return x.then(r=>{if(r.error){console.warn('load '+t,r.error.message);LOAD_FAILED.push(t);try{reportBug({category:'load_failed',severity:'error',table_name:t,message:r.error.message});}catch(_){}return [];}return r.data||[];});};
  const [clients,team,items,hist,comments,links,access,props,recurring,deploys,ranks,weekly,checks,blogs,mreports,seo,alerts]=await Promise.all([
   /* deliberate: never select mrr/package/health - the dev role must not see client money */
   q('clients','id,name,industry,client_type',x=>x.order('name')),
@@ -1090,7 +1155,7 @@ async function doLogin(){
   }
   document.getElementById('lgPw').value='';
   signIn({name:me.data.display_name,role:me.data.role,title:me.data.title||''});
-  await fetchAll();renderLoadWarn();go('today');
+  await fetchAll();renderLoadWarn();go('today');maybeRunHarness();
  }catch(e){err.textContent='Could not sign in. Check the connection.';}
  finally{if(btn){btn.disabled=false;btn.textContent='Sign in';}}
 }
@@ -2197,6 +2262,23 @@ function repTimeHtml(){
 /* ================================================================
    SECTION 11 - SYSTEM page + alerts
    ================================================================ */
+
+/* a person's own words, straight into the same log the machine writes to */
+async function sendBugReport(){
+ const box=document.getElementById('bugText'),out=document.getElementById('bugDone');
+ const txt=(box&&box.value||'').trim();
+ if(txt.length<5){if(out)out.textContent='Please say a little more about what you saw.';return;}
+ if(looksLikeSecret(txt)){if(out)out.textContent='That looks like a password. Please describe the problem instead.';return;}
+ try{
+  await fetch(SB_URL+'/rest/v1/system_bug_log',{method:'POST',
+   headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+   body:JSON.stringify({app:BUG_APP,severity:'info',category:'user_report',
+    message:txt.slice(0,500),user_name:(CURRENT&&CURRENT.name)||'signed out',
+    url:location.href.slice(0,300),user_agent:(navigator.userAgent||'').slice(0,300)})});
+  box.value='';if(out)out.textContent='Sent. Thank you.';toast('Reported');
+ }catch(e){if(out)out.textContent='Could not send that. Check the connection.';}
+}
+
 function renderSystem(){
  const el=document.getElementById('page-system');
  el.innerHTML=
@@ -2205,6 +2287,7 @@ function renderSystem(){
  '<p style="font-size:12.5px;color:var(--text-2);margin-bottom:12px">Runs 50 checks against a seeded in-memory copy: gearset integrity, stage-history writes, the Root-Cause Lock, care-engine idempotency, the no-money rule, page sweep with overflow audit, and the safety nets themselves. Zero footprint, never touches live data. Gate: ALL GREEN at ~390px AND desktop, twice each.</p>'+
  '<button class="btn-primary" onclick="runSelfTest({all:true})">'+I.shield+' Run self-test</button>'+
  '<div class="empty-sub mt">Also runs via ?selftest in the URL.</div></div></div>'+
+ '<div class="card"><div class="card-h"><h3>Report a problem</h3></div><div class="card-b">'+'<p style="font-size:12.5px;color:var(--text-2);margin-bottom:10px">Saw something wrong? Say what you saw and what you expected. It reaches the team without you writing a message.</p>'+'<div class="fld"><textarea id="bugText" rows="3" placeholder="What happened, and on which page" style="width:100%;background:var(--surface-2,transparent);color:var(--text);border:1px solid var(--border);border-radius:9px;padding:10px;font-family:inherit;font-size:13px;resize:vertical"></textarea></div>'+'<button class="btn-primary" onclick="sendBugReport()">'+I.alert+' Send</button>'+'<div class="empty-sub mt" id="bugDone"></div></div></div>'+
  '<div class="card"><div class="card-h"><h3>Mode</h3></div><div class="card-b">'+
  '<p style="font-size:12.5px;color:var(--text-2);margin-bottom:12px">Currently <b>'+(MODE==='demo'?'DEMO':'LIVE')+'</b>. '+
  (MODE==='demo'?'Sample data, in-memory, reseeds on reload. Nothing is saved.':'Connected to the shared BB Supabase. Every change is real.')+'</p>'+
@@ -2657,7 +2740,7 @@ async function runSelfTest(opts){
   window.__ST_LOG.length=bootLog.length;
  }
  const failed=R.filter(r=>!r.pass);
- stReport(R,failed);
+ if(!(opts&&opts.silent))stReport(R,failed);
  try{console.table(R.map(r=>({check:r.name,pass:r.pass})));}catch(e){}
  return {pass:failed.length===0,failed:failed,results:R,viewport:window.innerWidth};
 }
@@ -2699,7 +2782,7 @@ async function boot(){
     const me=await sb.from('dev_users').select('display_name,title,role,active').eq('user_id',sess.user.id).maybeSingle();
     if(me.data&&me.data.active!==false){
      signIn({name:me.data.display_name,role:me.data.role,title:me.data.title||''});
-     await fetchAll();renderLoadWarn();
+     await fetchAll();renderLoadWarn();maybeRunHarness();
     }else{
      await sb.auth.signOut();
     }

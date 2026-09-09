@@ -122,9 +122,15 @@ Do not resolve this by making the repo public. See L-DEV-002.
 
 ---
 
-## L-DEV-005 — A network blip turns the self-test red.
+## L-DEV-005 — CLOSED 2026-09-09. A network blip no longer turns the self-test red.
 
-**Status: OPEN, small fix, not yet applied.**
+**Status: FIXED.** `isNetworkBlip()` filters `failed to fetch`, `networkerror`,
+`network request failed` and `load failed` BEFORE the rejection is recorded, so the two
+harness checks that read `__ST_LOG` cannot go red for a dropped packet. `guard.py` L-006
+passes. The same predicate is reused by the bug catcher, so a blip is logged as weather
+at severity info rather than as a fault.
+
+The ORIGINAL finding, kept for the record:
 
 index.html:509
 ```
@@ -286,3 +292,41 @@ with `client_id NULL` and reads as "BB Internal" on screen. (2) `clients` id 51 
 **"Business Bosster"** with industry 'Automotive' and package 'Ignite'; it was used for Business
 Booster's blogs and website build on a name match alone. Both are one-line fixes to `clients`,
 a table this system does not own, so neither was done here.
+
+
+---
+
+## L-DEV-011 — The bug catcher, added 2026-09-09.
+
+This app had NO reporter at all and had never written a `system_bug_log` row, so an
+error here was invisible to the estate. Four things landed, each one a fault BB has
+already paid for elsewhere.
+
+**1. The Supabase script had no `crossorigin`.** Without it, any error thrown inside
+that library reaches the log as the two words "Script error." with no file, no line and
+no stack. Five of the eight open bugs across the estate are exactly that. Count went
+from 1 to 2 (the first was a font `<link>`, never a script).
+
+**2. Weather is no longer logged as a bug.** A developer's localhost preview writes
+nothing at all. Network faults collapse to ONE row per app per ten minutes keyed on app
+plus CATEGORY, never per table, because a dropped connection used to log once per table
+and read as a storm. **Proven: twenty tables failing at once wrote 1 row, while three
+genuine per-table faults still wrote 3.**
+
+**3. The harness runs itself once per person per day** and posts the score to
+`bb_harness_runs`. `runSelfTest({silent:true})` returns the result without ever showing
+the report, so nobody is interrupted. A red check on somebody's phone is now seen within
+the hour, and a day with no rows is itself a signal.
+
+**4. A person can report what they saw**, from a card on the System page. It refuses
+anything under five characters and refuses anything that looks like a credential, reusing
+`looksLikeSecret` from the Keyring.
+
+**Deliberate deviation from the brief.** The card was specified for the Settings sheet.
+Settings here sits inside the shared `@@BB_SETTINGS_*@@` fence, which another session
+pushed to today (L-SMM-021 records that block drifting between apps). It went on the
+System page instead, which this system owns outright. Never edit a shared fence to add
+something that has a safe home of its own.
+
+Writes go by raw REST with the anon key, deliberately NOT through the app's own client,
+so a broken sign-in still reports.
