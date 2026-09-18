@@ -286,3 +286,18 @@ with `client_id NULL` and reads as "BB Internal" on screen. (2) `clients` id 51 
 **"Business Bosster"** with industry 'Automotive' and package 'Ignite'; it was used for Business
 Booster's blogs and website build on a name match alone. Both are one-line fixes to `clients`,
 a table this system does not own, so neither was done here.
+
+## L-DEV-PAGES-01 (2026-09-18): the Pages deploy can hang, and re-running does not always unstick it
+The icon commit `227bf6c` landed on main and the GitHub Pages deploy failed with
+`Error: Failed to get ID Token ... Request timeout`, a fault on GitHub's side and not in the change.
+`gh run rerun` then sat QUEUED for over half an hour while githubstatus.com reported every component
+operational. What actually shipped it was cancelling the stuck run and pushing a fresh commit to
+main, because a new push queues a new build rather than reviving a dead one.
+
+**How to apply.** If the live site is stale and the newest run is `queued` for more than about ten
+minutes, do not wait and do not edit the workflow or the Pages settings. Cancel the run and push
+something real to main. Check what is actually being served, never what the run page claims:
+
+    curl -s -o /dev/null -w "%{size_download}\n" "https://businessboosterlk.github.io/bb-dev-system/icon-512.png?cb=1"
+
+About 115,000 bytes is the current estate icon. About 40,988 bytes is the old cropped wordmark.
