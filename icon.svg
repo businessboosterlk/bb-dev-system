@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <defs>
+    <radialGradient id="lightA" cx="0.20" cy="0.88" r="0.78">
+      <stop offset="0" stop-color="#22C55E" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#22C55E" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="lightB" cx="0.84" cy="0.12" r="0.70">
+      <stop offset="0" stop-color="#15A34A" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#15A34A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22C55E"/><stop offset="1" stop-color="#15A34A"/>
+    </linearGradient></defs>
+  <rect width="1000" height="1000" fill="#0C0D10"/>
+  <rect width="1000" height="1000" fill="url(#lightA)"/>
+  <rect width="1000" height="1000" fill="url(#lightB)"/>
+  <g transform="translate(500,500) scale(1.000) translate(-500,-500)">
+    <!-- OPTICALLY CENTRED BY INK, not by baseline: the cap top and the bar foot straddle y=500.
+         Cap top 223, bar foot 889, mid 556.0. -->
+    <text x="500" y="578" text-anchor="middle" font-family="Poppins"
+          font-weight="700" font-size="514" letter-spacing="16" fill="#FFFFFF">BB</text>
+    <rect x="139" y="699" width="719" height="190" rx="35" fill="url(#bar)"/>
+    
+    <text x="500" y="832" text-anchor="middle" font-family="Poppins"
+          font-weight="700" font-size="96" letter-spacing="12" fill="#0C0D10">DEV</text>
+  </g>
+</svg>
