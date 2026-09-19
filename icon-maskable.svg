@@ -14,11 +14,11 @@
   <rect width="1000" height="1000" fill="#0C0D10"/>
   <rect width="1000" height="1000" fill="url(#lightA)"/>
   <rect width="1000" height="1000" fill="url(#lightB)"/>
-  <g transform="translate(500,500) scale(0.620) translate(-500,-500)">
+  <g transform="translate(500,500) scale(0.760) translate(-500,-500)">
     <!-- OPTICALLY CENTRED BY INK, not by baseline: the cap top and the bar foot straddle y=500.
          Cap top 223, bar foot 889, mid 556.0. -->
-    <text x="500" y="578" text-anchor="middle" font-family="Poppins"
-          font-weight="700" font-size="514" letter-spacing="16" fill="#FFFFFF">BB</text>
+    <text x="514" y="578" text-anchor="middle" font-family="Poppins"
+          font-weight="700" font-size="514" letter-spacing="28" fill="#FFFFFF">BB</text>
     <rect x="139" y="699" width="719" height="190" rx="35" fill="url(#bar)"/>
     
     <text x="500" y="832" text-anchor="middle" font-family="Poppins"
