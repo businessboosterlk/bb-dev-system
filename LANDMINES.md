@@ -346,3 +346,29 @@ filter by MEANING, never by a name list.
 Hiran's two jobs and four weekly plan rows were reassigned to Viraj before his login was
 removed. His `team_members` row stays `active = false`, never deleted, so every stage move
 he made still says who did it. His seeded demo records keep his name for the same reason.
+
+---
+
+## L-DEV-014 — 2026-09-21. Three checks a day, an owner on every plan row, a derived day list.
+
+**The plan had no owner field and fell back to a name.** `savePlan` set
+`assigned_to = CURRENT ? CURRENT.name : 'HIRAN'` on create and never touched it on edit. So
+nobody could hand a job to anybody, and the fallback named a person who had left. The form
+now carries "Who is doing it", read from `USERS` so it can only ever offer people who can
+actually sign in, and it saves on edit as well as create.
+
+**Two nav items shared one icon.** The shared `@@BB_SETTINGS_*@@` block builds its button by
+CLONING the last nav item, so it inherited System's gear. System is the health and self-test
+page, so it took a pulse line and the gear stayed with Settings, where it belongs. When two
+buttons look identical, check whether one is a clone before redrawing either.
+
+**Three checks a day, held in one table.** `SLOTS` at the top of the file is the only place
+the day's checks are listed. The table header, the cells, the due count and the modal title
+all read it. Thulaib set three on 21 Sep; a fourth is one line here plus one value in the
+database constraint.
+
+**The day list is DERIVED, never typed.** `myChecklist()` computes every line from live data
+and returns a longer list for the head than for the junior: the junior sees the checks, their
+own work and their own plan; the head also sees blocked work, blog posts, client reports,
+certificates inside thirty days and any planned job with nobody's name on it. A checklist
+somebody types by hand is stale the week after it is written.

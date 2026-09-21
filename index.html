@@ -105,6 +105,15 @@ svg{flex-shrink:0}
 .login-field::placeholder{color:var(--text-3)}
 .login-err{color:var(--red);font-size:11.5px;text-align:center;min-height:16px;margin-top:10px}
 .login-mode{text-align:center;margin-top:14px;font-size:10px;color:var(--text-3);letter-spacing:.06em;font-weight:600}
+.ck-row{display:flex;align-items:flex-start;gap:11px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.ck-row:last-child{border-bottom:none}
+.ck-row:hover .ck-t{color:var(--accent)}
+.ck-dot{width:20px;height:20px;border-radius:6px;border:1px solid var(--border);display:inline-grid;place-items:center;flex:none;margin-top:1px}
+.ck-dot svg{width:12px;height:12px}
+.ck-row.ok .ck-dot{border-color:var(--green);color:var(--green)}
+.ck-t{font-size:13px;font-weight:600;color:var(--text);display:block;line-height:1.35}
+.ck-row.ok .ck-t{color:var(--text-2);font-weight:500}
+.ck-w{display:block;font-size:11.5px;font-weight:400;color:var(--text-3);margin-top:2px}
 .chk-cell{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:9px;cursor:pointer;
   font-size:12px;font-weight:650;font-family:inherit;border:1px solid var(--border);background:transparent;color:var(--text-2);
   transition:border-color var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
@@ -679,6 +688,14 @@ const ACCESS_REQ_MSGS={
 };
 
 const LINK_TAGS=[{key:'repo',label:'Repo'},{key:'live',label:'Live URL'},{key:'staging',label:'Staging'},{key:'doc',label:'Doc'},{key:'other',label:'Other'}];
+/* The day's checks. Thulaib set three on 21 Sep 2026, the same rhythm the SMM
+   team runs. Adding a fourth is one line here plus one value in the database
+   constraint: nothing else counts slots. */
+/* WHO CAN BE GIVEN WORK. Read from USERS so it can never name somebody who has
+   left: the plan used to fall back to a hardcoded 'HIRAN' and would have kept
+   assigning work to him after he went. */
+function assignable(){return USERS.map(function(u){return u.name;});}
+const SLOTS=[{key:'am',label:'Morning'},{key:'mid',label:'Midday'},{key:'pm',label:'Evening'}];
 const BLOCK_REASONS=[{key:'access',label:'Waiting on access'},{key:'content',label:'Waiting on content'},{key:'approval',label:'Waiting on approval'}];
 const PRIORITIES=['urgent','high','normal','low'];
 
@@ -696,6 +713,7 @@ const I={
  globe:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>',
  rocket:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2 0-2.8a2 2 0 0 0-3-.2ZM12 15l-3-3a22 22 0 0 1 2-3.9A12.7 12.7 0 0 1 21.6 2.4a12.7 12.7 0 0 1-5.7 10.6A22 22 0 0 1 12 15ZM9 12H4s.5-3 2-4c1.6-1 5 0 5 0M12 15v5s3-.5 4-2c1-1.6 0-5 0-5"/></svg>',
  key:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m11 12 9-9M17.5 5.5 21 9M14 9l2.5 2.5"/></svg>',
+ pulse:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-7 5 14L17 12h4"/></svg>',
  gear:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>',
  send:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>',
  copy:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
@@ -934,7 +952,7 @@ function seedData(){
  const checks=[];let _c=900;
  [401,402,403].forEach(function(pid){
   for(let back=6;back>=0;back--){
-   ['am','pm'].forEach(function(slot){
+   SLOTS.forEach(function(sl){var slot=sl.key;
     const skip=(back===0&&slot==='pm')||(pid===403&&back===2)||(pid===402&&back===4&&slot==='am');
     if(skip)return;
     const bug=(pid===403&&back===1&&slot==='pm');
@@ -1047,7 +1065,7 @@ const NAV=[
  {key:'care',label:'Care',icon:'wrench',sec:'Operations'},
  {key:'deploys',label:'Deploys',icon:'rocket',sec:'Operations'},
  {key:'reports',label:'Reports',icon:'chart',sec:'Operations'},
- {key:'system',label:'System',icon:'gear',sec:'System'}
+ {key:'system',label:'System',icon:'pulse',sec:'System'}
 ];
 const TITLES={today:'Today',board:'Work Board',daily:'Daily Checks',monthly:'Monthly',plan:'Weekly Plan',clients:'Clients',keyring:'The Keyring',care:'Care',deploys:'Deploys',reports:'Reports',system:'System'};
 function pageAllowed(pg){return !!TITLES[pg];}
@@ -1544,6 +1562,68 @@ async function saveItemForm(id){
 /* ================================================================
    SECTION 5 - TODAY (the developer's landing)
    ================================================================ */
+
+/* ================================================================
+   MY DAY. One engine, a different list per person. Every line is
+   DERIVED from live data, never a typed checklist: a checklist
+   nobody computes goes stale the week after it is written.
+   ================================================================ */
+function memberIdByName(n){
+ const m=(DATA.team||[]).find(function(x){return x.name&&x.name.toUpperCase()===String(n).toUpperCase();});
+ return m?m.id:null;
+}
+function myChecklist(){
+ const T=todayISO(),me=(CURRENT&&CURRENT.name)||'',head=canAdmin(),out=[];
+ const props=monitored();
+ SLOTS.forEach(function(sl){
+  const missing=props.filter(function(p){return !checkOf(p.id,T,sl.key);});
+  out.push({done:props.length>0&&missing.length===0,
+   text:sl.label+' check on '+plural(props.length,'site'),
+   why:props.length?(missing.length?'still to do: '+missing.map(function(p){return p.name;}).join(', '):'all clear'):'nothing under care yet',
+   go:'daily'});
+ });
+ const myId=memberIdByName(me);
+ const mine=activeItems().filter(function(it){return myId&&String(it.assigned_to)===String(myId);});
+ const dueToday=mine.filter(function(it){return it.deadline&&it.deadline<=T;});
+ out.push({done:dueToday.length===0,text:'Your work due today',
+  why:dueToday.length?dueToday.map(function(it){return it.title;}).slice(0,2).join(' and '):'nothing overdue',go:'board'});
+ const wk=(DATA.weekly||[]).filter(function(r){return r.week_start===mondayISO(T)&&(r.assigned_to||'')===me;});
+ const openWk=wk.filter(function(r){return r.status!=='done';});
+ out.push({done:wk.length>0&&openWk.length===0,text:'Your plan for this week',
+  why:wk.length?(wk.length-openWk.length)+' of '+wk.length+' done':'nothing planned for you yet',go:'plan'});
+ if(head){
+  const blocked=activeItems().filter(function(it){return it.blocked_reason;});
+  out.push({done:blocked.length===0,text:'Chase what is blocked',
+   why:blocked.length?blocked.map(function(it){return it.title;}).slice(0,2).join(' and '):'nothing waiting on a client',go:'board'});
+  const y=Number(T.slice(0,4)),m=Number(T.slice(5,7));
+  let due=0,posted=0,reps=0,repsDone=0;
+  seoClients().forEach(function(x){
+   const n=Number(x.cfg.posts_per_month)||4;due+=n;
+   for(let i=1;i<=n;i++){const b=blogSlot(x.client.id,y,m,i);if(b&&b.posted_at)posted++;}
+   reps++;const r=reportRow(x.client.id,y,m);if(r&&r.done_at)repsDone++;});
+  out.push({done:due>0&&posted===due,text:'Blog posts this month',why:posted+' of '+due+' posted',go:'monthly'});
+  out.push({done:reps>0&&repsDone===reps,text:'Client reports this month',why:repsDone+' of '+reps+' sent',go:'monthly'});
+  const soon=(DATA.props||[]).filter(function(p){return p.ssl_expiry&&p.ssl_expiry<=addDays(T,30);});
+  out.push({done:soon.length===0,text:'Certificates expiring within a month',
+   why:soon.length?soon.map(function(p){return p.name;}).join(', '):'none due',go:'care'});
+  const unowned=(DATA.weekly||[]).filter(function(r){return r.week_start===mondayISO(T)&&!r.assigned_to;});
+  out.push({done:unowned.length===0,text:'Every planned job has a name on it',
+   why:unowned.length?unowned.length+' with nobody assigned':'all assigned',go:'plan'});
+ }
+ return out;
+}
+function myChecklistHtml(){
+ const rows=myChecklist(),left=rows.filter(function(r){return !r.done;}).length;
+ return '<div class="card" style="margin-bottom:16px"><div class="card-h"><h3>Your day'+
+  (canAdmin()?'':'')+'</h3><span class="sp"><span class="badge plain '+(left?'amber':'green')+'">'+
+  (rows.length-left)+' of '+rows.length+' done</span></span></div><div class="card-b">'+
+  mapSafe(rows,function(r){
+   return '<div class="ck-row'+(r.done?' ok':'')+'" onclick="go(\''+r.go+'\')">'+
+    '<span class="ck-dot">'+(r.done?I.check:'')+'</span>'+
+    '<span class="ck-t">'+esc(r.text)+'<span class="ck-w">'+esc(r.why)+'</span></span></div>';})+
+  '</div></div>';
+}
+
 function renderToday(){
  const el=document.getElementById('page-today');
  const T=todayISO();
@@ -1583,6 +1663,7 @@ function renderToday(){
  statCard('Overdue',overdue.length,overdue.length?'amber':'green','past deadline','clock')+
  statCard('Blocked on client',blocked.length,blocked.length?'amber':'green','access, content, approval','alert')+
  '</div>'+
+ myChecklistHtml()+
  (attn.length?'<div class="card" style="margin-bottom:16px"><div class="card-h"><h3>Attention</h3><span class="sp"><span class="badge '+(attn.some(a=>a.sev==='red')?'red':'amber')+'">'+attn.length+'</span></span></div><div class="card-b"><div class="hlist">'+
   mapSafe(attn.slice(0,6),a=>'<div class="hrow" style="cursor:pointer" onclick="'+a.fn+'"><span class="health-dot '+a.sev+'"></span><div class="grow"><b>'+esc(a.msg)+'</b></div></div>')+
   (attn.length>6?'<div class="empty-sub" style="padding-top:8px">'+(attn.length-6)+' more, the sentinel keeps watching</div>':'')+
@@ -1953,8 +2034,8 @@ function shiftMonth(n){const y=Number(monYM().slice(0,4)),m=Number(monYM().slice
 
 function renderDaily(){
  const el=document.getElementById('page-daily');
- const date=chkDate(),props=monitored(),slots=['am','pm'];
- const due=props.length*2;
+ const date=chkDate(),props=monitored(),slots=SLOTS.map(function(x){return x.key;});
+ const due=props.length*SLOTS.length;
  const done=props.reduce((n,p)=>n+slots.filter(sl=>checkOf(p.id,date,sl)).length,0);
  const bugs=props.reduce((n,p)=>n+slots.filter(sl=>{const c=checkOf(p.id,date,sl);return c&&c.bugs_found;}).length,0);
  const isToday=date===todayISO();
@@ -1983,10 +2064,10 @@ function renderDaily(){
  '</div>'+
  '<div class="card"><div class="card-h"><h3>Morning and evening</h3><span class="sp"><span class="hint">Every tick records who and when</span></span></div>'+
  '<div class="card-b tbl-wrap">'+
- (props.length?'<table class="tbl"><thead><tr><th>What we check</th><th>Client</th><th>Morning</th><th>Evening</th><th>Last 7 days</th></tr></thead><tbody>'+
+ (props.length?'<table class="tbl"><thead><tr><th>What we check</th><th>Client</th>'+SLOTS.map(function(x){return '<th>'+x.label+'</th>';}).join('')+'<th>Last 7 days</th></tr></thead><tbody>'+
   mapSafe(props,p=>'<tr><td><b>'+esc(p.name)+'</b><div class="empty-sub">'+(p.type==='system'?'System':'Website')+'</div></td>'+
    '<td>'+esc(clientName(p.client_id))+'</td>'+
-   '<td>'+cell(p,'am')+'</td><td>'+cell(p,'pm')+'</td>'+
+   SLOTS.map(function(x){return '<td>'+cell(p,x.key)+'</td>';}).join('')+
    '<td><div class="dayline">'+strip(p)+'</div></td></tr>')+
   '</tbody></table>'
   :'<div class="empty-state"><div class="empty-title">Nothing is under care yet</div><div class="empty-sub">Add the sites and systems we look after, and every one of them appears here, morning and evening.</div></div>')+
@@ -1995,7 +2076,7 @@ function renderDaily(){
 function openCheck(pid,slot){
  const p=(DATA.props||[]).find(x=>Number(x.id)===Number(pid));if(!p)return;
  const date=chkDate(),c=checkOf(pid,date,slot);
- openModal(modalHead((slot==='am'?'Morning':'Evening')+' check')+
+ openModal(modalHead(((SLOTS.find(function(x){return x.key===slot;})||{}).label||'')+' check')+
   '<div class="modal-b"><div class="fld"><label>What</label><div class="copybox">'+esc(p.name)+' &middot; '+esc(fmtDate(date))+'</div></div>'+
   (c?'<div class="empty-sub mt">Already recorded by '+esc(c.checked_by||'')+' at '+fmtClock(c.checked_at)+'. Choosing again corrects it.</div>':'')+
   '<div class="fld"><label>Note (optional)</label><input id="ckNote" value="'+esc(c&&c.note?c.note:'')+'" placeholder="what you saw"></div></div>'+
@@ -2288,6 +2369,8 @@ function openPlanForm(id,presetDay){
   '<div class="frm-row"><div class="fld"><label>Day</label><select id="plDay">'+dayOpts+'</select></div>'+
   '<div class="fld"><label>Work type</label><select id="plType">'+WORK_TYPES.map(function(w){return '<option value="'+w+'"'+((e?e.work_type:'system')===w?' selected':'')+'>'+esc(GEARSETS[w].label)+'</option>';}).join('')+'</select></div></div>'+
   '<div class="frm-row"><div class="fld"><label>Client</label><select id="plClient">'+cOpts+'</select></div>'+
+  '<div class="fld"><label>Who is doing it</label><select id="plWho">'+assignable().map(function(n){var sel=(e&&e.assigned_to?e.assigned_to:(CURRENT?CURRENT.name:''))===n?' selected':'';return '<option'+sel+'>'+esc(n)+'</option>';}).join('')+'</select></div></div>'+
+  '<div class="frm-row">'+
   '<div class="fld"><label>Status</label><select id="plStatus">'+['pending','done','delayed'].map(function(s){return '<option'+((e?e.status:'pending')===s?' selected':'')+'>'+s+'</option>';}).join('')+'</select></div></div>'+
   '<div class="fld"><label>Notes</label><textarea id="plNotes">'+esc(e&&e.notes?e.notes:'')+'</textarea></div></div>'+
   '<div class="modal-f">'+(id?'<button class="btn-ghost btn-danger btn-sm" onclick="delPlan('+id+')">'+I.trash+' Delete</button><span style="flex:1"></span>':'')+
@@ -2298,10 +2381,11 @@ async function savePlan(id){
  if(!title){toast('Give it a title');return;}
  var cv=document.getElementById('plClient').value;
  var row={title:title,day_of_week:Number(document.getElementById('plDay').value),work_type:document.getElementById('plType').value,
-  client_id:cv?Number(cv):null,status:document.getElementById('plStatus').value,notes:(document.getElementById('plNotes').value||'').trim()||null,updated_at:nowISO()};
+  client_id:cv?Number(cv):null,status:document.getElementById('plStatus').value,notes:(document.getElementById('plNotes').value||'').trim()||null,updated_at:nowISO(),
+  assigned_to:document.getElementById('plWho').value||null};
  try{
   if(id){await DBW.update('dev_weekly_plan',id,row);}
-  else{row.week_start=PLAN_WEEK;row.assigned_to=CURRENT?CURRENT.name:'HIRAN';row.created_by=CURRENT?CURRENT.name:'HIRAN';await DBW.insert('dev_weekly_plan',row);}
+  else{row.week_start=PLAN_WEEK;row.created_by=CURRENT?CURRENT.name:'unknown';await DBW.insert('dev_weekly_plan',row);}
   closeModal();toast('Saved to the plan');renderPlan();
  }catch(err){toast('Save failed: '+esc(err&&err.message||''));}
 }
