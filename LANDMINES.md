@@ -301,3 +301,48 @@ something real to main. Check what is actually being served, never what the run 
     curl -s -o /dev/null -w "%{size_download}\n" "https://businessboosterlk.github.io/bb-dev-system/icon-512.png?cb=1"
 
 About 115,000 bytes is the current estate icon. About 40,988 bytes is the old cropped wordmark.
+
+---
+
+## L-DEV-012 — 2026-09-21. L-DEV-001 REVERSED. This system now matches the estate.
+
+**L-DEV-001 was wrong and it cost Thulaib two weeks.** It recorded the authenticated
+posture as deliberate design. It was not. It was an accident of how this system happened
+to be built, and on 1 September it was hardened further, which left the CEO unable to add
+a single person without opening the Supabase dashboard. The Video, Graphic and SMM systems
+never had that problem: all three use name plus PIN and read with the public key.
+
+The Video System is the proof. Its login is `YOUR NAME` and a `PIN`, and the file carries
+this comment right beside it: *"NO SHARED LOGIN. A signInWithPassword used to run here,
+before anyone..."*. Video hit the same shared-credential problem and fixed it the same way.
+**It removed the shared credential and KEPT the simple login.** On 1 September this system
+threw away both. Only one of them was the hole.
+
+**The PIN was never what protected the database, in any of the six systems.** It decides
+whose name renders and what they can see. What protects the data is the row policy.
+
+Applied on Thulaib's go: all fourteen `dev_*` tables moved to `dev_public` FOR ALL TO
+public with anon grants, the same posture as the rest of the estate. `crm_*` untouched,
+Leads untouched. Verified with the public key: `dev_items` 200 with rows, `crm_profiles`
+**401**.
+
+**What this opens, said plainly.** Anyone with the public URL can read the work board, the
+client list and the deploy notes. Not passwords, the Keyring holds none by design. Not
+client money, it is not in this tool. The Command Centre already runs this way and it holds
+client revenue, so this is no more open than what BB already operates.
+
+---
+
+## L-DEV-013 — A name in a lookup is a bug with a start date.
+
+`devMemberId()` read `DATA.team.find(m => m.name.toUpperCase() === 'HIRAN')`. The day Hiran
+left and his row went `active = false`, that returned nobody, so every job the Care engine
+spawned would have had **no owner** and nobody would have been told. It never threw.
+
+Now found by ROLE: `/develop/i.test(m.role)`, first active match. Finds VIRAJ today and
+whoever follows him, with no code change. Same lesson as `shared-tables-need-a-department`:
+filter by MEANING, never by a name list.
+
+Hiran's two jobs and four weekly plan rows were reassigned to Viraj before his login was
+removed. His `team_members` row stays `active = false`, never deleted, so every stage move
+he made still says who did it. His seeded demo records keep his name for the same reason.
