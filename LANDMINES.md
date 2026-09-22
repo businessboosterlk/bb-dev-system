@@ -372,3 +372,37 @@ and returns a longer list for the head than for the junior: the junior sees the 
 own work and their own plan; the head also sees blocked work, blog posts, client reports,
 certificates inside thirty days and any planned job with nobody's name on it. A checklist
 somebody types by hand is stale the week after it is written.
+
+## L-DEV-015 — a call to a function that lives on another branch
+**Found 2026-09-22, live, by signing in as KISHINI on a local copy of main.**
+
+`doLogin()` on `main` ended with `if(MODE!=='demo')maybeRunHarness();`. `maybeRunHarness`
+is part of the bug catcher, which was built on `bugfix/2026-09-09` and **never merged**.
+So every real sign-in on the live site threw `ReferenceError: maybeRunHarness is not
+defined`. Nobody reported it because `signIn(u)` runs on the line before, so the screen
+still opened and the error was silent.
+
+Fixed by guarding the call: `typeof maybeRunHarness==='function'`. The branch is still
+unmerged and the bug catcher is still not running on the live system.
+
+**The lesson.** A cherry-picked line from a branch is a call into a function that does not
+exist. When a branch is abandoned, grep main for every name the branch introduced.
+This is the second thing that has gone missing from `bugfix/2026-09-09` (the crossorigin
+fix was the first). MERGE IT OR DELETE IT.
+
+## L-DEV-016 — a shared board that never said whose work it was
+**Thulaib, 2026-09-22: "make sure Kishini can add the weekly plan for him as well and she
+can see everybody's stuff".**
+
+Nothing was hiding anyone's work. The Weekly Plan had always rendered every row in the
+week for every signed-in person, and the owner field shipped on 2026-09-21. But the card
+printed the title, the work type and the client and **never the name**, so a board of nine
+rows looked identical whoever was looking at it, and there was no way to ask "what is
+Viraj doing this week".
+
+Fixed with the smallest two things that answer it: an owner chip on every card (amber
+`Nobody` when unassigned, which feeds the head's "every planned job has a name on it"
+row) and a Whose week filter carrying a count per person.
+
+**The lesson.** "Can she see everybody's stuff" is usually not a permissions question.
+Check what the screen PRINTS before you go looking at who can read what.

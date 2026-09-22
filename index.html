@@ -467,6 +467,12 @@ kbd{background:var(--surface-2);border:1px solid var(--border-strong);border-rad
 .plan-entry.done .pe-title{text-decoration:line-through}
 .pe-title{font-size:12.5px;font-weight:600;line-height:1.35;margin-bottom:8px;word-break:break-word}
 .pe-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.pe-who{font-size:9.5px;font-weight:800;letter-spacing:.06em;color:var(--text-2);background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:2px 8px;white-space:nowrap}
+.pe-who.none{color:var(--amber);background:var(--amber-soft);border-color:rgba(245,158,11,.25)}
+.plan-who{display:flex;align-items:center;gap:10px;margin:-6px 0 16px;flex-wrap:wrap}
+.plan-who .lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+.plan-who .n{opacity:.62;margin-left:5px;font-weight:700}
+.plan-who .tab-group{flex-wrap:wrap;max-width:100%}
 .pe-status{width:20px;height:20px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);display:grid;place-items:center;flex-shrink:0;color:var(--text-3);cursor:pointer}
 .pe-status:hover{border-color:var(--accent)}
 .pe-status.done{background:var(--green-soft);border-color:transparent;color:var(--green)}
@@ -1113,7 +1119,10 @@ function doLogin(){
  if(u.pin!==p){err.textContent='Wrong PIN';document.getElementById('lgPw').value='';return;}
  err.textContent='';document.getElementById('lgPw').value='';
  signIn(u);
- if(MODE!=='demo')maybeRunHarness();
+ /* The bug catcher, maybeRunHarness included, is parked on bugfix/2026-09-09 and is
+    NOT on main. Calling it unguarded threw a ReferenceError on EVERY real sign-in.
+    Guarded so the line is harmless until the branch is merged. L-DEV-015. */
+ if(MODE!=='demo'&&typeof maybeRunHarness==='function')maybeRunHarness();
 }
 function signIn(u){
  CURRENT={name:u.name,role:u.role,title:u.title};
@@ -1592,6 +1601,11 @@ function myChecklist(){
  out.push({done:wk.length>0&&openWk.length===0,text:'Your plan for this week',
   why:wk.length?(wk.length-openWk.length)+' of '+wk.length+' done':'nothing planned for you yet',go:'plan'});
  if(head){
+  const allWk=(DATA.weekly||[]).filter(function(r){return r.week_start===mondayISO(T);});
+  const others=allWk.filter(function(r){return String(r.assigned_to||'')!==me;});
+  const othersOpen=others.filter(function(r){return r.status!=='done';});
+  out.push({done:others.length>0&&othersOpen.length===0,text:"The rest of the team's week",
+   why:others.length?(others.length-othersOpen.length)+' of '+others.length+' done across the rest of the team':'nobody else has anything planned',go:'plan'});
   const blocked=activeItems().filter(function(it){return it.blocked_reason;});
   out.push({done:blocked.length===0,text:'Chase what is blocked',
    why:blocked.length?blocked.map(function(it){return it.title;}).slice(0,2).join(' and '):'nothing waiting on a client',go:'board'});
@@ -2329,6 +2343,7 @@ function updateBell(){const d=document.getElementById('bellDot');if(d)d.hidden=!
    Video/Graphic weekly plans; own dev_weekly_plan table)
    ================================================================ */
 let PLAN_WEEK=null;
+let PLAN_WHO='all';
 const DOW=['Mon','Tue','Wed','Thu','Fri'];
 function mondayISO(iso){var d=new Date(iso+'T12:00:00');var g=d.getDay();d.setDate(d.getDate()+(g===0?-6:1-g));return d.toISOString().slice(0,10);}
 function shortDate(iso){return fmtDate(iso).replace(/ 20\d\d$/,'');}
@@ -2337,7 +2352,8 @@ function renderPlan(){
  var el=document.getElementById('page-plan');
  if(!PLAN_WEEK)PLAN_WEEK=mondayISO(todayISO());
  var today=todayISO();
- var rows=(DATA.weekly||[]).filter(function(r){return String(r.week_start)===PLAN_WEEK;});
+ var week=(DATA.weekly||[]).filter(function(r){return String(r.week_start)===PLAN_WEEK;});
+ var rows=PLAN_WHO==='all'?week:week.filter(function(r){return String(r.assigned_to||'')===PLAN_WHO;});
  var done=rows.filter(function(r){return r.status==='done';}).length;
  var cols=DOW.map(function(dn,i){
   var dow=i+1;var date=addDays(PLAN_WEEK,i);var isToday=(date===today);
@@ -2347,7 +2363,7 @@ function renderPlan(){
    return '<div class="plan-entry '+(e.status==='done'?'done':'')+'" onclick="openPlanForm('+e.id+')">'+
     '<div class="pe-title">'+esc(e.title)+'</div>'+
     '<div class="pe-meta"><button class="pe-status '+st+'" title="'+esc(e.status||'pending')+'" onclick="event.stopPropagation();cyclePlan('+e.id+')">'+(e.status==='done'?I.check:e.status==='delayed'?I.clock:'')+'</button>'+
-    wtBadge(e.work_type)+(e.client_id!=null?'<span class="wc-client">'+esc(clientName(e.client_id))+'</span>':'')+'</div></div>';
+    wtBadge(e.work_type)+(e.client_id!=null?'<span class="wc-client">'+esc(clientName(e.client_id))+'</span>':'')+'<span class="pe-who'+(e.assigned_to?'':' none')+'">'+esc(e.assigned_to||'Nobody')+'</span>'+'</div></div>';
   }):'<div class="empty-sub" style="padding:4px 2px">Nothing planned</div>';
   return '<div class="plan-col'+(isToday?' is-today':'')+'"><div class="plan-day"><b>'+dn+(isToday?'<span class="dot"></span>':'')+'</b><span>'+shortDate(date)+'</span></div>'+
    '<div class="plan-entries">'+body+'</div><button class="plan-add" onclick="openPlanForm(null,'+dow+')">'+I.plus+' Add</button></div>';
@@ -2358,7 +2374,22 @@ function renderPlan(){
   '<span class="plan-range">'+shortDate(PLAN_WEEK)+' to '+shortDate(addDays(PLAN_WEEK,4))+'</span>'+
   '<span class="empty-sub">'+done+' of '+rows.length+' done</span>'+
   '<span style="flex:1"></span><button class="btn-primary btn-sm" onclick="openPlanForm()">'+I.plus+' Add to plan</button></div>'+
-  '<div class="plan-board">'+cols+'</div>';
+  planWhoHtml(week)+'<div class="plan-board">'+cols+'</div>';
+}
+function planPeople(week){
+ var names=assignable().slice();
+ week.forEach(function(r){var n=String(r.assigned_to||'');if(n&&names.indexOf(n)<0)names.push(n);});
+ return names;
+}
+function setPlanWho(w){PLAN_WHO=w;renderPlan();}
+function planWhoHtml(week){
+ var count=function(n){return week.filter(function(r){return String(r.assigned_to||'')===n;}).length;};
+ var btn=function(v,label,n){return '<button class="tab-btn'+(PLAN_WHO===v?' active':'')+'" onclick="setPlanWho(\''+v+'\')">'+esc(label)+(n==null?'':'<span class="n">'+n+'</span>')+'</button>';};
+ var nobody=count('');
+ return '<div class="plan-who"><span class="lbl">Whose week</span><div class="tab-group">'+
+  btn('all','Everyone',week.length)+
+  planPeople(week).map(function(n){return btn(n,n,count(n));}).join('')+
+  (nobody?btn('','Nobody',nobody):'')+'</div></div>';
 }
 function openPlanForm(id,presetDay){
  var e=id?(DATA.weekly||[]).find(function(x){return Number(x.id)===Number(id);}):null;
@@ -2507,7 +2538,7 @@ async function runSelfTest(opts){
  const R=[];const ok=(name,pass,detail)=>{R.push({name:name,pass:!!pass,detail:detail||''});};
  /* ---- snapshot ---- */
  const snapMode=MODE,snapData=JSON.stringify(DATA),snapCur=CURRENT?JSON.parse(JSON.stringify(CURRENT)):null;
- const snapBoard=BOARD_FILTER,snapRepTab=REP_TAB,snapRepC=REP_CLIENT,snapRepM=REP_MONTH;
+ const snapBoard=BOARD_FILTER,snapPlanWho=PLAN_WHO,snapRepTab=REP_TAB,snapRepC=REP_CLIENT,snapRepM=REP_MONTH;
  const snapChk=CHK_DATE,snapMon=MON_YM;
  const snapTheme=document.documentElement.getAttribute('data-theme');
  const snapPage=((document.querySelector('.page.active')||{}).id||'page-today').replace('page-','');
@@ -2628,6 +2659,44 @@ async function runSelfTest(opts){
   var _wpc=DATA.weekly.length;
   await DBW.insert('dev_weekly_plan',{week_start:PLAN_WEEK,day_of_week:2,title:'selftest plan row',work_type:'system',status:'pending'});
   ok('Weekly plan write path works',DATA.weekly.length===_wpc+1);
+  (function(){
+   const head=USERS.find(function(u){return u.role==='admin'&&/head/i.test(u.title||'');});
+   const jun=USERS.find(function(u){return u.role!=='admin';});
+   ok('The head and the junior are both in the login list',!!head&&!!jun,(head?head.name:'?')+' / '+(jun?jun.name:'?'));
+   ok('The head can put a name on a plan row other than her own',assignable().indexOf(jun.name)>=0,assignable().join(', '));
+  })();
+  (function(){
+   const was=CURRENT;signIn(USERS.find(function(u){return /head/i.test(u.title||'');}));
+   PLAN_WHO='all';renderPlan();
+   const mine=(DATA.weekly||[]).filter(function(r){return String(r.week_start)===PLAN_WEEK;});
+   ok('Everyone shows the whole week, not just the signed-in person',
+    document.querySelectorAll('#page-plan .plan-entry').length===mine.length,
+    document.querySelectorAll('#page-plan .plan-entry').length+' of '+mine.length);
+   ok('Every plan card says who is doing it',
+    document.querySelectorAll('#page-plan .plan-entry').length===document.querySelectorAll('#page-plan .pe-who').length);
+   const jun=USERS.find(function(u){return u.role!=='admin';}).name;
+   const before=DATA.weekly.length;
+   DATA.weekly.push({id:999901,week_start:PLAN_WEEK,day_of_week:1,title:'selftest junior row',work_type:'system',status:'pending',assigned_to:jun});
+   setPlanWho(jun);
+   const shown=document.querySelectorAll('#page-plan .plan-entry').length;
+   const want=(DATA.weekly||[]).filter(function(r){return String(r.week_start)===PLAN_WEEK&&String(r.assigned_to||'')===jun;}).length;
+   ok('Filtering to one person shows only that person',shown===want&&want>0,shown+' of '+want+' for '+jun);
+   ok('The filter offers a button for every person who can be assigned',
+    document.querySelectorAll('#page-plan .plan-who .tab-btn').length>=assignable().length+1,
+    document.querySelectorAll('#page-plan .plan-who .tab-btn').length+' buttons');
+   PLAN_WHO='all';renderPlan();
+   DATA.weekly=DATA.weekly.filter(function(r){return Number(r.id)!==999901;});
+   ok('Filter state restored and the row cleaned up',DATA.weekly.length===before&&PLAN_WHO==='all');
+   const ck=myChecklist();
+   ok("The head's day carries the rest of the team's week",
+    ck.some(function(r){return /rest of the team/i.test(r.text);}),ck.length+' rows');
+   signIn(USERS.find(function(u){return u.role!=='admin';}));
+   const jck=myChecklist();
+   ok("The junior's day does not carry the team-wide rows",
+    !jck.some(function(r){return /rest of the team/i.test(r.text);})&&jck.length<ck.length,
+    jck.length+' junior rows vs '+ck.length+' head rows');
+   if(was)signIn(was);
+  })();
   /* ---- A5.6 daily checks + the month ---- */
   CHK_DATE=todayISO();MON_YM=todayISO().slice(0,7);
   go('daily');
@@ -2729,7 +2798,7 @@ async function runSelfTest(opts){
  }finally{
   /* ---- restore everything ---- */
   MODE=snapMode;DATA=JSON.parse(snapData);
-  BOARD_FILTER=snapBoard;REP_TAB=snapRepTab;REP_CLIENT=snapRepC;REP_MONTH=snapRepM;
+  BOARD_FILTER=snapBoard;PLAN_WHO=snapPlanWho;REP_TAB=snapRepTab;REP_CLIENT=snapRepC;REP_MONTH=snapRepM;
   CHK_DATE=snapChk;MON_YM=snapMon;
   document.documentElement.setAttribute('data-theme',snapTheme||'dark');
   closeModal();window._openItemId=null;
