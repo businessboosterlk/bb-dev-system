@@ -1197,7 +1197,7 @@ const PAGE_HEAD={
  board:{k:'Work',t:'Work Board',s:'Every build, fix, site and SEO task in one place. Drag across stages inside a work-type.'},
  plan:{k:'Work',t:'Weekly Plan',s:'What the dev team is doing each day this week. Add a task to any day, tick it off as it is done.'},
  clients:{k:'Clients',t:'Clients',s:'Who we work for, what is open, and where access stands.'},
- daily:{k:'Work',t:'Daily Checks',s:'Every site and system we look after, checked morning and evening.'},
+ daily:{k:'Work',t:'Daily Checks',s:'Every site and system we look after, checked morning, midday and evening.'},
  monthly:{k:'Clients',t:'The Month',s:'Blog posts due and the client report, ticked as they are done.'},
  keyring:{k:'Clients',t:'The Keyring',s:'What access we hold for each client, and what is still missing.'},
  care:{k:'Operations',t:'Care',s:'Recurring upkeep and the health of every site and system.'},
@@ -2112,7 +2112,7 @@ function renderDaily(){
   '<div class="stat-card"><div class="stat-lbl">Bugs found</div><div class="stat-val '+(bugs?'red':'green')+'">'+bugs+'</div><div class="stat-note">'+(bugs?'log each one as work':'nothing reported')+'</div></div>'+
   '<div class="stat-card"><div class="stat-lbl">Under care</div><div class="stat-val accent">'+props.length+'</div><div class="stat-note">'+plural(props.filter(p=>p.type==='website').length,'site')+', '+plural(props.filter(p=>p.type==='system').length,'system')+'</div></div>'+
  '</div>'+
- '<div class="card"><div class="card-h"><h3>Morning and evening</h3><span class="sp"><span class="hint">Every tick records who and when</span></span></div>'+
+ '<div class="card"><div class="card-h"><h3>Three times a day</h3><span class="sp"><span class="hint">Every tick records who and when</span></span></div>'+
  '<div class="card-b tbl-wrap">'+
  (props.length?'<table class="tbl"><thead><tr><th>What we check</th><th>Client</th>'+SLOTS.map(function(x){return '<th>'+x.label+'</th>';}).join('')+'<th>Last 7 days</th></tr></thead><tbody>'+
   mapSafe(props,p=>'<tr><td><b>'+esc(p.name)+'</b><div class="empty-sub">'+(p.type==='system'?'System':'Website')+'</div></td>'+
@@ -2120,7 +2120,7 @@ function renderDaily(){
    SLOTS.map(function(x){return '<td>'+cell(p,x.key)+'</td>';}).join('')+
    '<td><div class="dayline">'+strip(p)+'</div></td></tr>')+
   '</tbody></table>'
-  :'<div class="empty-state"><div class="empty-title">Nothing is under care yet</div><div class="empty-sub">Add the sites and systems we look after, and every one of them appears here, morning and evening.</div></div>')+
+  :'<div class="empty-state"><div class="empty-title">Nothing is under care yet</div><div class="empty-sub">Add the sites and systems we look after, and every one of them appears here, three times a day.</div></div>')+
  '</div></div>';
 }
 function openCheck(pid,slot){
