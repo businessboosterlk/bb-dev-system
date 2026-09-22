@@ -464,3 +464,36 @@ person who caused it. Map at `~/bb-dev-system/ALERTS.md`.
 a control that said "Alerts off, tap to turn on" for seventeen days, and turning
 it on would have changed nothing. **When a feature has a visible control and an
 invisible half, count the invisible half before you call the feature present.**
+
+## L-DEV-019 — a development team looking at 28 marketing clients
+**Thulaib, 2026-09-22: "WHY HAVE WE ADDED EVERY SINGLE CLIENT".**
+
+Nothing added them. The Dev System reads the shared `clients` table, the same one
+the Command Centre and every other BB system reads, and `renderClients` printed
+all of it with no filter. Development holds something for **6** of those 28.
+
+Fixed with a filter, not a deletion, because a new website gig starts with a
+client this page has never seen: **We work on 6 / Every BB client 28**, opening on
+the six. A client counts as ours when development holds a site under care, active
+blog posts, open board work, a login or a job on the plan.
+
+**The lesson.** Reading a shared table is not the same as owning its rows. When a
+system reads an estate-wide table, the DEFAULT view has to be the slice that
+system is responsible for, and the rest stays one tap away. Nobody notices this
+while the table is small.
+
+## L-DEV-020 — WAVERLEY rendered as "WAVER LEY"
+Found in the same screenshot. `.hrow b` carried `word-break:break-word`, and on a
+390px screen the badges squeezed the name column to 44px, so every client name
+snapped mid-word across three lines. Fixed by letting the badges drop to their own
+line below the name under 560px, and by banning a break inside a word outright.
+Measured after: every name one line, 17px tall, no horizontal scroll.
+
+**Two process notes from finding it.** The first fix did nothing because the media
+query sat ABOVE `.hrow .grow` and lost the cascade on equal specificity. The
+second appeared to do nothing because the cache buster had been written as
+`#clients?r=2`, which puts it in the FRAGMENT: the document URL never changed and
+the browser served the cached page. **A query string after a hash is not a query
+string.** Read the computed style rather than the screenshot when a CSS change
+looks ignored: `getComputedStyle` said `flex-wrap: nowrap` while the file said
+`wrap`, and that one line named both faults.
