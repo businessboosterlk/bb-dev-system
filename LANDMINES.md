@@ -435,3 +435,32 @@ full of "still loading" look identical, and the zeros are the more convincing li
 they are laid out neatly. The harness had 72 green checks and every one of them ran
 against seeded demo data, so not one of them ever watched the sign-in path load anything.
 **Test the door people walk through, not the room behind it.**
+
+## L-DEV-018 — the alert button had nothing behind it
+**Thulaib, 2026-09-22: "DOES THE APP ALERTS WORK ON THIS".**
+
+No. Counted live: 0 alert rules for any `dev_*` table against 17 for the rest of
+the estate, 0 triggers, 0 alerts ever queued from this system, 0 rows in
+`agent_alerts` for `system = 'dev'`, and 0 phones subscribed from this app out of
+38 across the estate. The push block, the bell and the "Alerts off, tap to turn
+on" pill had all shipped on 5 September. Nothing on the other side had.
+
+Also found: `team_members.is_head` was **false** for Kishini while her role read
+"Dev Head". Every alert rule in the estate finds a head by that flag and never by
+the job title, so any rule naming the head of development would have resolved to
+nobody, silently. Same shape as the fault that hid every alert from the video
+head for weeks.
+
+Also found: the Dev System had **no hash router at all**. `go()` never wrote a
+hash and nothing read one, so a phone alert carrying `#daily` would have dropped
+the person on Today. The estate's own contract says every alert carries `#route`
+to the screen that answers it.
+
+Fixed: four alerts in a `bb_dev_*` namespace, the head flag set, a hash router,
+and `updated_by` stamped in one place by the write seam so no alert can ring the
+person who caused it. Map at `~/bb-dev-system/ALERTS.md`.
+
+**The lesson.** A switch on a wall is not a light. This app had shown every user
+a control that said "Alerts off, tap to turn on" for seventeen days, and turning
+it on would have changed nothing. **When a feature has a visible control and an
+invisible half, count the invisible half before you call the feature present.**

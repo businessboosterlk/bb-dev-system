@@ -765,16 +765,22 @@ const TBL={dev_items:'items',dev_stage_history:'hist',dev_item_comments:'comment
  dev_daily_checks:'checks',dev_blog_posts:'blogs',dev_month_report:'mreports',dev_seo_clients:'seo'};
 let _seq=5000;
 
+const ACTOR_TABLES=['dev_weekly_plan','dev_items'];
 const DBW={
  async insert(table,row){
   const key=TBL[table];if(!key)throw new Error('unknown table '+table);
   if(MODE==='demo'){const r=Object.assign({id:++_seq,created_at:nowISO()},row);DATA[key].push(r);return r;}
+  if(ACTOR_TABLES.indexOf(table)>-1&&row&&row.updated_by===undefined)row.updated_by=CURRENT?CURRENT.name:null;
   const res=await sb.from(table).insert(row).select().single();
   if(res.error){window.bbReportDbError&&window.bbReportDbError(table,'insert',res.error);throw res.error;}
   DATA[key].push(res.data);return res.data;
  },
+ /* Tables whose phone alerts must skip the person who made the change.
+    The trigger drops the actor from the recipient list, and it can only do
+    that if the row says who acted. Stamped here so no call site can forget. */
  async update(table,id,patch){
   const key=TBL[table];if(!key)throw new Error('unknown table '+table);
+  if(ACTOR_TABLES.indexOf(table)>-1&&patch&&patch.updated_by===undefined)patch.updated_by=CURRENT?CURRENT.name:null;
   const local=DATA[key].find(r=>Number(r.id)===Number(id));
   if(local)Object.assign(local,patch);
   if(MODE==='demo')return local;
@@ -1146,7 +1152,9 @@ function signIn(u){
  document.getElementById('meAv').textContent=u.name[0];
  var sl=document.getElementById('sbLogo');if(sl&&!sl.getAttribute('src'))sl.src=BB_LOGO;
  updateClock();
- buildNav();applyModeChip();logDevLogin(u);go('today');
+ buildNav();applyModeChip();logDevLogin(u);
+ var _h=(location.hash||'').replace(/^#/,'').split('?')[0];
+ go(pageAllowed(_h)?_h:'today');
 }
 function signOut(){
  CURRENT=null;PEND=null;sessionStorage.removeItem('bb_dev_user');
@@ -1209,8 +1217,24 @@ function renderMarquee(pg){
  }else{const h=PAGE_HEAD[pg]||{k:'',t:(TITLES[pg]||''),s:''};k=h.k;t=h.t;s=h.s;}
  m.innerHTML=(k?'<div class="mq-kicker">'+esc(k)+'</div>':'')+'<h1 class="mq-title">'+esc(t)+'</h1>'+(s?'<div class="mq-sub">'+s+'</div>':'');
 }
+/* THE HASH IS THE ROUTER.
+   Every BB alert carries #<route> to the screen that answers it, never the
+   root. Before 22 Sep 2026 this app had no hash at all, so any link we sent
+   would have dropped the person on Today and left them to find the thing
+   themselves. go() now writes the hash and the hash drives go(). */
+let _routing=false;
+function routeFromHash(){
+ const pg=(location.hash||'').replace(/^#/,'').split('?')[0];
+ if(pg&&pageAllowed(pg)&&CURRENT)go(pg);
+}
+window.addEventListener('hashchange',function(){if(!_routing)routeFromHash();});
 function go(pg){
  if(!pageAllowed(pg))pg='today';
+ if((location.hash||'').replace(/^#/,'')!==pg){
+  _routing=true;
+  try{history.replaceState(null,'','#'+pg);}catch(e){}
+  _routing=false;
+ }
  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.pg===pg));
  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-'+pg));
  document.getElementById('tbTitle').textContent=TITLES[pg];
@@ -2720,6 +2744,27 @@ async function runSelfTest(opts){
     !jck.some(function(r){return /rest of the team/i.test(r.text);})&&jck.length<ck.length,
     jck.length+' junior rows vs '+ck.length+' head rows');
    if(was)signIn(was);
+  })();
+  /* ---- A5.7 the hash is the router, so a phone alert can point at a page ---- */
+  (function(){
+   const was=location.hash;
+   go('plan');
+   ok('Going to a page writes the hash, so an alert can link straight to it',location.hash==='#plan',location.hash);
+   go('daily');
+   ok('The hash follows the page',location.hash==='#daily',location.hash);
+   go('not-a-real-page');
+   ok('An unknown route falls back to Today rather than blanking the screen',
+    (document.querySelector('.page.active')||{}).id==='page-today');
+   ok('Every route the phone alerts link to is a real page of this app',
+    ['plan','board','daily','monthly'].every(function(r){return pageAllowed(r);}));
+   ok('The write seam stamps who acted, so no alert rings the person who acted',
+    ACTOR_TABLES.indexOf('dev_weekly_plan')>-1&&ACTOR_TABLES.indexOf('dev_items')>-1,ACTOR_TABLES.join(', '));
+   (function(){
+    const patch={status:'done'};
+    if(ACTOR_TABLES.indexOf('dev_weekly_plan')>-1&&patch.updated_by===undefined)patch.updated_by=CURRENT?CURRENT.name:null;
+    ok('A plan edit carries the name of whoever made it',!!patch.updated_by,String(patch.updated_by));
+   })();
+   try{history.replaceState(null,'',was||location.pathname+location.search);}catch(e){}
   })();
   /* ---- A5.6 daily checks + the month ---- */
   CHK_DATE=todayISO();MON_YM=todayISO().slice(0,7);
