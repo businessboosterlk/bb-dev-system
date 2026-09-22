@@ -497,7 +497,7 @@ kbd{background:var(--surface-2);border:1px solid var(--border-strong);border-rad
     <div class="login-date" id="lgDate"></div>
     <input class="login-field" id="lgName" autocomplete="username" placeholder="Your name" aria-label="Your name" onkeydown="if(event.key==='Enter')focusPw()">
     <input class="login-field" id="lgPw" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" aria-label="PIN" onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="btn-primary" onclick="doLogin()" style="width:100%;padding:13px 16px">Sign in</button>
+    <button class="btn-primary" id="lgBtn" onclick="doLogin()" style="width:100%;padding:13px 16px">Sign in</button>
     <div class="login-err" id="lgErr"></div>
     <div class="login-mode" id="lgMode"></div>
   </div>
@@ -1108,7 +1108,7 @@ function updateClock(){
  var t=document.getElementById('sbTime');if(t)t.textContent=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
  var d=document.getElementById('sbDate');if(d)d.textContent=now.toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'short'});
 }
-function doLogin(){
+async function doLogin(){
  const err=document.getElementById('lgErr');
  const n=(document.getElementById('lgName').value||'').trim().toUpperCase();
  const p=(document.getElementById('lgPw').value||'').trim();
@@ -1118,7 +1118,19 @@ function doLogin(){
  if(!u){err.textContent='Name "'+esc(n)+'" not found';return;}
  if(u.pin!==p){err.textContent='Wrong PIN';document.getElementById('lgPw').value='';return;}
  err.textContent='';document.getElementById('lgPw').value='';
+ /* Load BEFORE the app appears. signIn() renders Today straight away, and on
+    2026-09-22 nothing fetched on the sign-in path at all, so a person who had
+    just typed their PIN sat looking at 0 open work and "nothing under care yet"
+    until the three-minute refresh timer fired. An empty screen that means "still
+    loading" reads as "you have no work". L-DEV-017. */
+ const btn=document.getElementById('lgBtn');
+ if(MODE==='live'){
+  if(btn){btn.disabled=true;btn.textContent='Loading your work';}
+  try{await fetchAll();}catch(e){console.warn('first load',e&&e.message);}
+  if(btn){btn.disabled=false;btn.textContent='Sign in';}
+ }
  signIn(u);
+ renderLoadWarn();updateBell();
  /* The bug catcher, maybeRunHarness included, is parked on bugfix/2026-09-09 and is
     NOT on main. Calling it unguarded threw a ReferenceError on EVERY real sign-in.
     Guarded so the line is harmless until the branch is merged. L-DEV-015. */
@@ -2582,6 +2594,18 @@ async function runSelfTest(opts){
    const devCan=canAdmin();
    CURRENT.role=was;
    ok('Role mechanism holds: dev is not admin (hook for future gating; nothing gates on it today)',devCan===false&&(was!=='admin'||canAdmin()));
+   (function(){
+    /* Read the SOURCE, because MODE is demo in here and the live path cannot run.
+       Both of these were broken on the live site on 2026-09-22. */
+    const dl=doLogin.toString(),bt=boot.toString();
+    ok('Sign-in loads the data before the app appears',
+     dl.indexOf('fetchAll')>-1&&dl.indexOf('fetchAll')<dl.indexOf('signIn(u)'),
+     dl.indexOf('fetchAll')+' vs '+dl.indexOf('signIn(u)'));
+    ok('A restored session repaints once its data lands',
+     /CURRENT&&MODE==='live'[\s\S]{0,160}renderPageRefresh/.test(bt));
+    ok('Nothing calls a function that is not in this file',
+     dl.indexOf('typeof maybeRunHarness')>-1);
+   })();
   })();
   /* ---- A1.5 smart layer ---- */
   ok('Next-best-action picks the live critical bug first',(nextBestAction()||{}).id===5);
@@ -2849,7 +2873,7 @@ async function boot(){
   const saved=sessionStorage.getItem('bb_dev_user');
   if(saved){const u=USERS.find(x=>x.name===(JSON.parse(saved)||{}).name);if(u)signIn(u);}
  }catch(e){}
- if(CURRENT&&MODE==='live'){await fetchAll();renderLoadWarn();}
+ if(CURRENT&&MODE==='live'){await fetchAll();renderLoadWarn();updateBell();renderPageRefresh();}
  if(CURRENT||MODE==='demo'){
   try{await runCareEngine();}catch(e){console.warn('care engine',e&&e.message);}
   updateBell();

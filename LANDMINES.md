@@ -406,3 +406,32 @@ row) and a Whose week filter carrying a count per person.
 
 **The lesson.** "Can she see everybody's stuff" is usually not a permissions question.
 Check what the screen PRINTS before you go looking at who can read what.
+
+## L-DEV-017 — signing in never loaded anything
+**Found 2026-09-22, on the LIVE site, while re-verifying L-DEV-016.**
+
+Signed in as KISHINI on `businessboosterlk.github.io/bb-dev-system/` and the whole app
+read zero: 0 open work, "Morning check on 0 sites", "nothing under care yet", an empty
+Weekly Plan. A direct `sb.from('dev_weekly_plan').select('*')` in the same tab returned
+**25 rows**, and `LOAD_FAILED` was empty. Nothing was broken in the database or the
+policies. **Nothing had been fetched.**
+
+Two holes, both on the paths a human actually uses:
+
+1. `doLogin()` called `signIn(u)`, and `signIn` ends with `go('today')`. Neither of them
+   fetches. So a person who typed their name and PIN saw a fully rendered, completely
+   empty system until the three-minute refresh timer fired.
+2. The restored-session path in `boot()` did `await fetchAll(); renderLoadWarn();` and
+   then **never repainted**, because `signIn` had already drawn Today against empty data.
+
+Fixed: `doLogin` is async, loads first with the button reading "Loading your work" and
+only then opens the app (1.2 to 1.5 seconds measured); the restore path now calls
+`updateBell(); renderPageRefresh()` after its load. Three harness checks read the SOURCE
+of `doLogin` and `boot`, because the harness runs in demo mode and can never exercise
+the live path.
+
+**The lesson, and it is the same one as L-DEV-006.** A screen full of zeros and a screen
+full of "still loading" look identical, and the zeros are the more convincing lie because
+they are laid out neatly. The harness had 72 green checks and every one of them ran
+against seeded demo data, so not one of them ever watched the sign-in path load anything.
+**Test the door people walk through, not the room behind it.**
