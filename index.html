@@ -803,7 +803,19 @@ function fmtHours(sec){if(!sec)return '0h';const h=sec/3600;return h>=10?Math.ro
 function clientName(id){if(id==null)return 'BB Internal';const c=(DATA.clients||[]).find(c=>Number(c.id)===Number(id));return c?c.name:'Client #'+id;}
 function memberName(id){const m=(DATA.team||[]).find(m=>Number(m.id)===Number(id));return m?m.name:'';}
 /* heuristic guard: warn if a note looks like a pasted secret */
-function looksLikeSecret(s){if(!s)return false;return /[A-Za-z0-9_\-\/+=]{24,}/.test(s.replace(/https?:\S+/g,''))||/password\s*[:=]\s*\S+/i.test(s);}
+/* DEV-9 repair, 7 Oct 2026: once the guard ran on the runbook and on comments it
+   refused a server path (/home/businessboosterlk/public_html/dev) and a full
+   commit hash as credentials, and a property whose runbook held a path could not
+   be saved at all. Paths that start a word (/x, ~/x, ./x, ../x), host/path
+   addresses (github.com/org/repo) and 40 character lowercase commit hashes are
+   taken out before the 24 character test. A slash INSIDE a run is not a path,
+   so a key with a slash in it is still caught, and password: still is. */
+function looksLikeSecret(s){if(!s)return false;
+ const t=s.replace(/https?:\S+/g,'')
+  .replace(/(^|[\s"'`(\[=:,;])(?:~|\.{1,2})?\/[\w.\/-]+/g,'$1')
+  .replace(/\b[\w-]+(?:\.[\w-]+)+\/[\w.\/-]*/g,'')
+  .replace(/\b[0-9a-f]{40}\b/g,'');
+ return /[A-Za-z0-9_\-\/+=]{24,}/.test(t)||/password\s*[:=]\s*\S+/i.test(s);}
 
 /* ================================================================
    SECTION 2 - DATA LAYER
@@ -1330,6 +1342,12 @@ function go(pg){
  try{if(RENDERERS[pg])RENDERERS[pg]();}catch(e){pageErrorBoundary(pg,e);}
  animateCounts(document.getElementById('page-'+pg));
  window.scrollTo(0,0);
+ /* DEV-5 repair, 7 Oct 2026: a jump made from the phone menu, the search
+    palette or a client modal runs while the overlay still holds the page
+    frozen, so the scrollTo above does nothing and closing the overlay put the
+    OLD page's offset back on the new page (600 in, 600 out). Tell the freeze
+    the new page starts at the top. */
+ if(typeof BBF==='object'&&BBF.resetScroll)BBF.resetScroll();
 }
 
 /* modal helpers */
@@ -3431,8 +3449,16 @@ var BBF=(function(){
   }
   return true;
  }
- function anyOpen(){var n=document.querySelectorAll(OVS),i;
-  for(i=0;i<n.length;i++)if(isOpen(n[i]))return n[i];return null;}
+ /* DEV-5 repair, 7 Oct 2026: this returned the FIRST open overlay in document
+    order, so with the phone menu open under Settings it named .nav-mask (inside
+    #app) and never the Settings backdrop at the end of the body. Back closed the
+    menu first and the shield stayed the menu's. It now returns the TOP one: the
+    highest z-index, the later one in the document when two are level. */
+ function anyOpen(){var n=document.querySelectorAll(OVS),i,top=null,tz=-Infinity,z;
+  for(i=0;i<n.length;i++)if(isOpen(n[i])){
+   z=parseInt(getComputedStyle(n[i]).zIndex,10)||0;
+   if(z>=tz){tz=z;top=n[i];}}
+  return top;}
 
  function lock(){if(locked)return;
   lockedY=window.scrollY||window.pageYOffset||0;
@@ -3441,6 +3467,11 @@ var BBF=(function(){
  function unlock(){if(!locked)return;
   document.body.classList.remove('sheet-open');document.body.style.top='';
   window.scrollTo(0,lockedY);locked=false;}
+ /* DEV-5 repair, 7 Oct 2026: go() calls this when it changes page under a
+    frozen body. The saved offset belonged to the page that was left, so the
+    page that arrives starts at the top. Only while frozen; otherwise go()'s
+    own scrollTo already did the job. */
+ function resetScroll(){if(!locked)return;lockedY=0;document.body.style.top='0px';}
 
  /* Covered is not the same as out of reach. */
  var shielded=[],shieldedFor=null;
@@ -3448,6 +3479,13 @@ var BBF=(function(){
   [].slice.call(document.body.children).forEach(function(el){
    if(el===ov||el.contains(ov))return;
    if(/^(SCRIPT|STYLE|TEMPLATE|LINK)$/.test(el.tagName))return;
+   /* DEV-5 repair, 7 Oct 2026: a backdrop is never shielded by another
+      overlay. The menu's shield made a hidden #bbset-back left from an earlier
+      Settings open inert, Settings then opened on a dead backdrop and a tap on
+      it went through to the sidebar. Only the backdrop itself is skipped: a
+      test for "contains an overlay" would skip #app forever (.nav-mask lives
+      in it) and the page would never be shielded behind a modal. */
+   if(el.matches&&el.matches(OVS))return;
    if(el.matches&&el.matches(KEEP))return;
    if(el.querySelector&&el.querySelector(KEEP))return;
    if(el.hasAttribute('inert'))return;
@@ -3593,7 +3631,7 @@ var BBF=(function(){
  return {start:start,hintKeyboards:hintKeyboards,anyOpen:anyOpen,sync:sync,
          watchdog:watchdog,healed:function(){return healed;},unowned:unowned,keep:KEEP,
          ovs:OVS,overlaySelector:function(){return OVS;},keepSelector:function(){return KEEP;},
-         runs:function(){return syncRuns;},isLocked:function(){return locked;}};
+         runs:function(){return syncRuns;},isLocked:function(){return locked;},resetScroll:resetScroll};
 })();
 BBF.start();BBF.hintKeyboards();
 </script>
