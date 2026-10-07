@@ -660,13 +660,18 @@ function nowISO(){return MODE==='demo'?DEMO_TODAY+'T09:00:00.000Z':new Date().to
    the other five systems. Adding somebody is one line here.
    HIRAN left the team 2026-09-21. His login is gone and his team_members row is
    marked inactive, never deleted, so every job and plan cell he touched still
-   says who did it. VIRAJ replaces him and his PIN is TEMPORARY: change it here
-   and tell him. */
+   says who did it.
+   PINS ARE NOT IN THIS FILE (7 Oct 2026, bb_pending 97). They live scrambled in
+   the database table app_pin, which no public key can read, and the page asks
+   app_pin_login. Five wrong tries lock a name for 15 minutes. To add a person:
+   one line here, then Thulaib runs, in the Supabase SQL editor,
+   select public.app_pin_set('dev','NAME','their pin');
+   Mould: ~/bb-systems/app-pin/. */
 const USERS=[
- {name:'THULAIB',pin:'1031',role:'admin',title:'CEO'},
- {name:'SHIARA', pin:'1006',role:'admin',title:'COO'},
- {name:'KISHINI',pin:'2222',role:'admin',title:'Head of Development'},
- {name:'VIRAJ',  pin:'4416',role:'dev',  title:'Junior Developer'}
+ {name:'THULAIB',role:'admin',title:'CEO'},
+ {name:'SHIARA', role:'admin',title:'COO'},
+ {name:'KISHINI',role:'admin',title:'Head of Development'},
+ {name:'VIRAJ',  role:'dev',  title:'Junior Developer'}
 ];
 
 /* THE GEARSETS - the keystone. One board, four stage sets; every native
@@ -1221,7 +1226,23 @@ async function doLogin(){
  if(!p){err.textContent='Enter your PIN';return;}
  const u=USERS.find(x=>x.name===n);
  if(!u){err.textContent='Name "'+esc(n)+'" not found';return;}
- if(u.pin!==p){err.textContent='Wrong PIN';document.getElementById('lgPw').value='';return;}
+ /* The PIN is checked by the database, never here (app_pin_login). Demo shows
+    sample data only and nothing saves, so it asks for no PIN. */
+ if(MODE==='live'){
+  const lb=document.getElementById('lgBtn');if(lb){lb.disabled=true;lb.textContent='Checking';}
+  let res=null;
+  try{const r=await sb.rpc('app_pin_login',{p_app:'dev',p_name:n,p_pin:p});if(r.error)throw r.error;res=r.data;}
+  catch(e){console.warn('pin check',e&&e.message);}
+  if(lb){lb.disabled=false;lb.textContent='Sign in';}
+  if(!res){err.textContent='Could not reach the database to check your PIN. Try again.';return;}
+  if(!res.ok){
+   document.getElementById('lgPw').value='';
+   err.textContent=res.why==='locked'?'Too many wrong tries. This name is locked for 15 minutes.':
+    res.why==='unknown'?'No PIN is set for '+esc(n)+' yet. Ask Thulaib.':'Wrong PIN';
+   return;
+  }
+  try{sessionStorage.setItem('bb_dev_pass',res.token);}catch(e){}
+ }
  err.textContent='';document.getElementById('lgPw').value='';
  /* Load BEFORE the app appears. signIn() renders Today straight away, and on
     2026-09-22 nothing fetched on the sign-in path at all, so a person who had
@@ -1256,7 +1277,8 @@ function signIn(u){
  go(pageAllowed(_h)?_h:'today');
 }
 function signOut(){
- CURRENT=null;PEND=null;sessionStorage.removeItem('bb_dev_user');
+ try{var _pass=sessionStorage.getItem('bb_dev_pass');if(_pass&&MODE==='live')sb.rpc('app_session_end',{p_app:'dev',p_token:_pass}).then(function(){},function(){});}catch(e){} /* .then sends it: a supabase-js call without then or await never leaves the page */
+ CURRENT=null;PEND=null;sessionStorage.removeItem('bb_dev_user');sessionStorage.removeItem('bb_dev_pass');
  document.getElementById('app').classList.remove('on');
  document.getElementById('loginScreen').style.display='flex';
  var e=document.getElementById('lgErr');if(e)e.textContent='';
@@ -3149,10 +3171,20 @@ async function boot(){
  if(MODE==='demo'){await fetchAll();renderLoadWarn();}
  snapshotPages();
  /* Whoever was signed in on this device stays signed in, the same as the Video
-    System. There is no Supabase session to check: nothing here authenticates. */
+    System. Live asks the database whether this tab's pass is still good
+    (app_session_check, 12 hours); a name typed into storage is not enough. */
  try{
   const saved=sessionStorage.getItem('bb_dev_user');
-  if(saved){const u=USERS.find(x=>x.name===(JSON.parse(saved)||{}).name);if(u)signIn(u);}
+  if(saved){
+   const u=USERS.find(x=>x.name===(JSON.parse(saved)||{}).name);
+   let good=MODE==='demo';
+   if(u&&MODE==='live'){
+    const pass=sessionStorage.getItem('bb_dev_pass');
+    if(pass){try{const r=await sb.rpc('app_session_check',{p_app:'dev',p_token:pass});good=!r.error&&r.data===u.name;}catch(e){good=false;}}
+   }
+   if(u&&good)signIn(u);
+   else{sessionStorage.removeItem('bb_dev_user');sessionStorage.removeItem('bb_dev_pass');}
+  }
  }catch(e){}
  if(CURRENT&&MODE==='live'){await fetchAll();renderLoadWarn();updateBell();renderPageRefresh();}
  if(CURRENT||MODE==='demo'){

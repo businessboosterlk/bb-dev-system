@@ -686,3 +686,17 @@ with the menu under Settings, Back closed the menu. It returns the top one now. 
 by another overlay.
 **Lesson: a guard that refuses honest text is a guard people learn to get round. Test it on what the team
 really types before it ships.**
+
+## L-DEV-033 · the PINs left the page; the server checks them · 2026-10-07 (bb_pending 97, Thulaib: "do this")
+Closes the PIN half of L-DEV-012. The four name and PIN pairs are gone from index.html. They live bcrypt-scrambled in
+`app_pin` (RLS on, no policy, no grant: the public key gets "permission denied"), seeded from the old values hashed on the
+Mac so nobody was locked out. Sign-in calls `app_pin_login` (five wrong tries lock the name 15 minutes) and keeps a 12 hour
+pass; a refresh restores only through `app_session_check`, so a name typed into sessionStorage lands on the login screen.
+Sign-out calls `app_session_end`. Demo asks for no PIN. Proven on a throwaway ZZTEST seat (deleted after): wrong PIN
+refused, right PIN in, forged pass refused, valid pass restores, sign-out kills the pass server-side; self-test 97 of 97.
+TRAP HIT: a supabase-js call with no await or .then is never sent, so the first sign-out cleared the tab and left the
+pass alive. Block: every fire-and-forget sb call ends in .then(function(){},function(){}).
+STILL OPEN: the old four PINs are in git history and earlier deploys, so Thulaib must set new ones
+(`select public.app_pin_set('dev','NAME','new pin');` in the SQL editor). The dev_* tables stay open to the public key;
+only the role floor closes the data. Mould: ~/bb-systems/app-pin/.
+
