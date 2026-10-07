@@ -497,3 +497,178 @@ the browser served the cached page. **A query string after a hash is not a query
 string.** Read the computed style rather than the screenshot when a CSS change
 looks ignored: `getComputedStyle` said `flex-wrap: nowrap` while the file said
 `wrap`, and that one line named both faults.
+
+## L-DEV-021: quiet hours hold the evening check alert to the next morning (OPEN, Thulaib's call)
+**Found 6 Oct 2026 in the evening audit (DEV-1). Nothing changed.**
+
+`bb-dev-checks-evening` runs `31 12 * * 1-5`, 18:01 Colombo, one minute after the evening
+window closes at 18:00 (ALERTS.md row 1: 11:01, 15:01 and 18:01). The quiet hours shipped
+that morning move anything queued at or after 18:00 to 07:00 the next working day, so
+"Evening check missed" now reaches Kishini and Viraj at 07:00 and Friday's lands on Monday.
+The window closes after 17:55, so the job was NOT moved: there is no gap between the close
+and 18:00 to put it in. `bb_dev_checks_missed` has no clock of its own; the close time lives
+only in ALERTS.md. Rechecked 7 Oct: jobid 42 still `31 12 * * 1-5`, `bb_notify_send_after`
+still holds anything at or after 18:00. ALERTS.md still says quiet hours start at 21:00.
+
+Two ways out, both Thulaib's. One: close the evening window at 17:30 and run the job at
+12:01 UTC. Two: drop the evening alert. Either starts from `cron.job` jobid 42.
+
+**The lesson.** Moving a shared clock (quiet hours) moves every alert scheduled near it.
+Before changing one, run `bb_notify_send_after` over every bb-* cron schedule.
+
+## L-DEV-022: two alert functions anyone with the public key could run
+**Found 6 Oct 2026 (DEV-2), closed the same evening.**
+
+`bb_dev_checks_missed` and `bb_dev_blogs_short` are SECURITY DEFINER and carried EXECUTE for
+PUBLIC (`=X/postgres`), so anon and authenticated could call them through the REST API. Their
+only dedupe is one row per date and slot, so a call with `p_dry false` and an old `p_date`
+queued a real alert for any weekday in history. Checked first: no call to either name in the
+nine `index.html` apps under `~/bb-*/` or in the 18 deployed edge functions; only the four
+pg_cron jobs call them, as postgres. Revoked from PUBLIC, anon and authenticated.
+`has_function_privilege` after: anon false, authenticated false, postgres true, service_role
+true on both. Rollback: `~/bb-systems/push/rollback/dev-fn-execute-2026-10-06-BEFORE.sql`.
+
+**The lesson.** Postgres grants EXECUTE to PUBLIC by default. A function only a scheduler
+should run gets its REVOKE in the same migration that creates it.
+
+## L-DEV-023: the card owner picker still found its default by name
+**Second instance of L-DEV-013 (DEV-4), 6 Oct 2026.**
+
+`openItemForm` pre-selected the member named HIRAN. He left on 21 Sep, nothing matched and
+there was no blank option, so the browser took the first active member of staff in heap
+order: SUHANA, a graphic designer. `bb_dev_notify_on_item` then alerted her about a website
+fault while the developer heard nothing. The list also held every member of staff.
+
+Now the list is Nobody plus dev roles only (`isDevRole`, the same `%dev%` test the alert
+functions use). A new card starts on `devMemberId()`. An edited card keeps its current owner
+in the list even outside a dev role, so saving an edit never moves the job. Probe: a new card
+lists Nobody, KISHINI, VIRAJ and selects VIRAJ; an edited card on SUHANA keeps SUHANA.
+
+**The lesson.** L-DEV-013 was fixed where it was found (the Care engine) and left in the
+picker beside it. When a name lookup turns up, grep the file for every `=== '<NAME>'` before
+calling it fixed.
+
+## L-DEV-024: none of the nine phone foundations were in the file
+**Found 6 Oct 2026 (DEV-5).**
+
+0 uses each of touch-action, tap-highlight, touch-callout, user-select, enterkeyhint, inert,
+scrollRestoration, dvh and pointer:coarse. Fields were 14px, so tapping any field zoomed an
+iPhone and stayed zoomed; Back left the app instead of closing a sheet. The BBF block was cast
+from bb-graphic-system: CSS at the end of the stylesheet, script at the end of the body. Three
+adaptations, each marked ADAPTED in the code:
+
+- Overlays `.modal-ov, .nav-mask, .cmdk-ov, .st-ov, #bbset-back`; keep list `#bbset-sheet`
+  only. `#sidebar` sits inside `#app` beside its own mask, so listing it (as Graphic does)
+  would stop `#app` ever being shielded behind a modal.
+- Modals here close by being REMOVED (`closeModal` empties `#modalRoot`) and the palette
+  arrives inside a wrapper. The graphic observer reacts only to an added overlay node, so a
+  closed modal left the page pinned until the two second watchdog freed it. The observer now
+  also reacts to an overlay inside an added wrapper or a removed one.
+- `go()` rewrites the current history entry with replaceState, so a jump made from the
+  palette replaced the overlay's own entry and the close's `history.back()` would have undone
+  the jump. The close now steps back only over an entry that is still ours.
+
+Measured at 390 and 1440: field 16px on the phone and 14px on the desk; an open modal pins
+the body and shields `#app`; Back once closes it and stays in the app; Cancel unpins in about
+65ms; a palette jump to Board sticks; Settings is recognised and sits at 88dvh. In-app
+self-test 84 of 84 at both widths before and after. Finished 7 Oct: the skill's checks went
+into the self-test (A8) and a hand-over fault was found and fixed, see L-DEV-031.
+
+**The lesson.** A block proven on one app carries that app's markup in its selectors and its
+observer. Read how THIS app opens and closes its overlays before casting, then prove the close
+path by measuring.
+
+## L-DEV-025: the service worker reached across every BB app on the origin
+**Found 6 Oct 2026 (DEV-6).**
+
+All six apps share one origin and a cache belongs to the origin, not the app. `activate`
+deleted every cache not named `bb-dev-system-v1`; `notificationclick` focused the first window
+of ANY BB app. Measured with the old worker: `bb-video-system-v3` and `bb-smm-workspace-v2`
+were deleted the moment the Dev worker activated. With the new one both survive and the old
+`bb-dev-system-v0` still goes. An alert tap now reuses only a window inside the worker's scope.
+
+**The lesson.** On a shared origin every cache list and every window list is shared. Filter by
+your own prefix and your own scope.
+
+## L-DEV-026: supabase-js loaded from a floating major with no integrity
+**Found 6 Oct 2026 (DEV-7).**
+
+`@supabase/supabase-js@2` meant any new 2.x release reached the live app with no change in this
+repo. Pinned to 2.117.2 (what `@2` served that day) as the static file `dist/umd/supabase.js`
+with a sha384 `integrity` and `crossorigin="anonymous"`. The floating URL cannot carry SRI:
+jsDelivr prepends a generated header to it. The floating body without that header is byte for
+byte the pinned file. Three fetches gave the same hash. Boot check after: the library
+loads, 0 page errors.
+
+To upgrade: change the version, recompute with
+`curl -sL <url> | openssl dgst -sha384 -binary | openssl base64 -A`, re-run the boot check.
+
+## L-DEV-027: the write seam reported to a function that did not exist
+**Second instance of L-DEV-015 (DEV-8), 6 Oct 2026.**
+
+DBW sent every failed insert, update and delete to `window.bbReportDbError`, which exists only
+on the unmerged bugfix branch, so a refused write reached one toast and nobody else. A small
+reporter now sits beside DBW: the console always, then at most one `system_bug_log` row per
+table every ten minutes (app `dev-system`, category `db_write`), the row shape the SMM
+Workspace uses. Checked first: anon holds INSERT on `system_bug_log` (policy public_all).
+Silent in demo and on localhost.
+
+**The lesson.** A guarded call (`window.X&&window.X()`) hides a missing function for good. When
+a guard goes in to stop a crash, the missing thing goes on the list the same day.
+
+## L-DEV-028: the no secrets guard covered the Keyring only
+**Found 6 Oct 2026 (DEV-9).**
+
+`looksLikeSecret` ran on the Keyring's notes and holder. Name, Hosted where, How to deploy,
+Known gotchas and Supabase project went to `dev_properties` unchecked, comments went to
+`dev_item_comments` unchecked. Both tables are readable with the public key. Both saves
+now refuse with the Keyring's own words. URL and Repo stay out on purpose: the guard flags any
+run of 24 path characters, so `github.com/org/name` (the seeded demo repos) would be refused as
+a credential. Live rows checked first: 0 existing values would be refused.
+
+**The lesson.** A guard on one form protects that form. Put it where the data is written. When
+the guard is a heuristic, run it over the real values before switching it on.
+
+## L-DEV-029: comments still said Dev signs in with Supabase
+**Found 6 Oct 2026 (DEV-10).**
+
+Three comments (the config block, the USERS header and the data layer header) described
+per person Supabase accounts and "silent app auth", none of it true since L-DEV-012. That is
+why the 6 Oct brief called Dev the one app on real Supabase Auth. Comments corrected only.
+`dev_users` (3 rows, read by nothing in the file) is left for Thulaib's yes.
+
+**The lesson.** When a decision reverses, grep the file for every sentence that described the
+old one.
+
+## L-DEV-030: the bell reads a table no Dev alert is written to (OPEN)
+**Found 6 Oct 2026 (DEV-3). Not fixed: the right table is closed to this app.**
+
+`fetchAll` loads `agent_alerts` where system is dev or all, which holds 0 Dev rows. Every Dev
+alert goes to `bb_notify_queue` (34 rows since 23 Sep). The bell could not be pointed there:
+`has_table_privilege('anon','bb_notify_queue','SELECT')` is false, RLS is on with no policy
+and this app reads as anon. It needs a decision first: a narrow security definer read of one
+member's dev_* rows or a view. Until then the bell says No alerts every day. Rechecked
+7 Oct: anon SELECT still false, RLS on, 0 policies on `bb_notify_queue`.
+
+## L-DEV-031: a modal opened from the search palette was dead to every tap
+**Found 7 Oct 2026 finishing DEV-5, before it shipped.**
+
+The BBF layer built its shield once, when the first overlay opened. Opening a card, client
+or site from the search palette removes the palette and fills `#modalRoot` in the same tick,
+so the next sync saw an overlay still open on a page still pinned and did nothing. The
+shield was the palette's: `#modalRoot` stayed inert and the new modal took no tap and no
+key. Probe at 390 and 1440: `elementFromPoint` on the modal returned the body, inert list
+`statusfill, loginScreen, app, modalRoot, toast`. Fixed by re-shielding whenever the open
+overlay is not the one the shield was built for; the pin and the history entry carry over.
+After: the point hits the modal and `#modalRoot` is not inert; Back still closes it.
+
+The 6 Oct cast also shipped without the skill's checks, which is how this got past it. The
+self-test now carries them (A8, 13 checks, 84 to 97) including this hand-over. Proven to
+bite: with the re-shield line removed the self-test fails exactly that check at both widths.
+Its first version passed with the line removed, because it opened the palette while a modal
+already held the shield; it now opens the palette on a freed page, as a person does. While
+the checks drive the layer, `history.pushState` and `history.back` are stood in for and put
+back, so a run never queues a Back that would land after the report.
+
+**The lesson.** An overlay layer that reacts only to open and closed misses a swap. Test the
+hand-over between two overlays. Run a new check once against the fault before trusting it.
