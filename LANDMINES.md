@@ -673,7 +673,7 @@ back, so a run never queues a Back that would land after the report.
 **The lesson.** An overlay layer that reacts only to open and closed misses a swap. Test the
 hand-over between two overlays. Run a new check once against the fault before trusting it.
 
-## L-DEV-031: three faults the reviewer found in the 6 Oct audit fixes (FIXED 7 Oct 2026)
+## L-DEV-032: three faults the reviewer found in the 6 Oct audit fixes (FIXED 7 Oct 2026)
 **The secrets guard refused ordinary runbook text.** Once looksLikeSecret ran on the runbook and on comments, a
 server path such as /home/businessboosterlk/public_html/dev and a full commit hash read as credentials, so a
 property whose runbook held a path could not be saved. Paths that start a word, host/path addresses and
@@ -682,7 +682,7 @@ repo address and a commit hash pass; a live key, a token, an access key pair and
 **A page jump under an open overlay kept the old scroll.** The phone foundation freeze put the left page's
 offset back on the new page. go() now tells the freeze the new page starts at the top.
 **Back closed the wrong overlay.** anyOpen returned the first open overlay in the document, not the top one, so
-with the menu under Settings, Back closed the menu. It returns the top one now, and a backdrop is never shielded
+with the menu under Settings, Back closed the menu. It returns the top one now. A backdrop is never shielded
 by another overlay.
 **Lesson: a guard that refuses honest text is a guard people learn to get round. Test it on what the team
 really types before it ships.**
