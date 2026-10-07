@@ -498,7 +498,7 @@ string.** Read the computed style rather than the screenshot when a CSS change
 looks ignored: `getComputedStyle` said `flex-wrap: nowrap` while the file said
 `wrap`, and that one line named both faults.
 
-## L-DEV-021: quiet hours hold the evening check alert to the next morning (OPEN, Thulaib's call)
+## L-DEV-021: quiet hours hold the evening check alert to the next morning (FIXED 7 Oct 2026, decision 108)
 **Found 6 Oct 2026 in the evening audit (DEV-1). Nothing changed.**
 
 `bb-dev-checks-evening` runs `31 12 * * 1-5`, 18:01 Colombo, one minute after the evening
@@ -515,6 +515,10 @@ Two ways out, both Thulaib's. One: close the evening window at 17:30 and run the
 
 **The lesson.** Moving a shared clock (quiet hours) moves every alert scheduled near it.
 Before changing one, run `bb_notify_send_after` over every bb-* cron schedule.
+
+**Fixed 7 Oct 2026.** Thulaib chose way one ("17:30"). Jobid 42 now runs `1 12 * * 1-5`, 17:31
+Colombo, and `bb_notify_send_after` returns the same minute for it on a weekday, Friday included.
+The function and the other two jobs are unchanged. Detail and proof in ALERTS.md, "Decision 108".
 
 ## L-DEV-022: two alert functions anyone with the public key could run
 **Found 6 Oct 2026 (DEV-2), closed the same evening.**
