@@ -1293,6 +1293,7 @@ function buildNav(){
   out+='<button class="nav-item" data-pg="'+n.key+'" onclick="go(\''+n.key+'\');closeSidebar()">'+(I[n.icon]||'')+'<span>'+esc(n.label)+'</span>'+
   (n.key==='today'?'<span class="nav-badge" id="navTodayBadge" hidden></span>':'')+'</button>';
  });
+ out+='<div class="nav-sec">Assistant</div><button class="nav-item" id="nav-booster" onclick="openBooster()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4c0-1.1.9-2 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></svg><span>Booster</span></button>'; /* BOOSTER, the Dev door (18 Oct 2026) */
  document.getElementById('sbNav').innerHTML=out;
 }
 function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('navMask').classList.add('on');}
@@ -3666,6 +3667,20 @@ var BBF=(function(){
          runs:function(){return syncRuns;},isLocked:function(){return locked;},resetScroll:resetScroll};
 })();
 BBF.start();BBF.hintKeyboards();
+</script>
+
+<script>
+/* BOOSTER LAUNCHER (18 Oct 2026, decision 452), cast from the SMM Workspace's: loads Booster's drawer once, full screen, on the dev door.
+   Each person signs in to Booster as themselves; nothing in this system changes. */
+var BOOSTER_HOST = 'https://booster-production-3b2e.up.railway.app/ask-bb/';
+function openBooster(){
+  try { if (typeof closeSidebar === 'function') closeSidebar(); } catch(e) {}
+  if (window.AskBBDrawer) { window.AskBBDrawer.open({}); return; }
+  var s = document.createElement('script'); s.src = BOOSTER_HOST + 'embed/drawer.js'; s.dataset.app = 'dev'; s.dataset.button = 'none'; s.dataset.size = 'full';
+  s.onload = function(){ if (window.AskBBDrawer) window.AskBBDrawer.open({}); };
+  s.onerror = function(){ window.open(BOOSTER_HOST + '?app=dev', '_blank'); };
+  document.body.appendChild(s);
+}
 </script>
 </body>
 </html>
