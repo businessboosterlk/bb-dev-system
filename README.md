@@ -14,4 +14,4 @@ The BB internal system that tracks the developer's work across four types: Syste
 - Gotcha: `client_id` is bigint; every select value is coerced with `Number()`.
 
 ## House rules written into the tool
-Root-Cause Lock on bugs, receipt line on client work, no deploy log without a rollback pointer, the Keyring never stores credentials, blocked is a flag not a stage, no client money rendered anywhere.
+Root-Cause Lock on bugs, receipt line on client work, Drafts tab is the only place test passwords live (L-DEV-020), no deploy log without a rollback pointer, the Keyring never stores credentials, blocked is a flag not a stage, no client money rendered anywhere.

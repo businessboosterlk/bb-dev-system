@@ -704,3 +704,23 @@ STILL OPEN: the old four PINs are in git history and earlier deploys, so Thulaib
 (`select public.app_pin_set('dev','NAME','new pin');` in the SQL editor). The dev_* tables stay open to the public key;
 only the role floor closes the data. Mould: ~/bb-systems/app-pin/.
 
+
+
+---
+
+## L-DEV-020 — Drafts holds TEST passwords. It is the ONE exception to "never store credentials".
+
+**Status: live design, approved by Thulaib 2026-11-20.**
+
+The Drafts tab (`dev_drafts`, migrations/002_drafts.sql) stores throwaway test logins for draft,
+preview and demo builds (Vercel previews, GitHub Pages drafts) so the team can open them fast.
+This was a deliberate call: those builds hold no real client data.
+
+Keep it narrow:
+- Real client access (Instagram, hosting, domain, GSC, WordPress admin) still goes in the Keyring as
+  WHERE it lives, never the secret. Do not let Drafts become a password manager.
+- `dev_drafts` is `authenticated_all` only, like every dev_* table (L-DEV-001). Never add anon/public.
+- Passwords render masked and are only revealed or copied on a tap. The self-test checks no
+  test password appears in the page text.
+- Links go through `safeUrl()`, which refuses anything that isn't http(s), so a pasted
+  `javascript:` link can never run.

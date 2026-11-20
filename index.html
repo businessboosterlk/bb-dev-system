@@ -259,6 +259,26 @@ button:disabled,.login-field:disabled{opacity:.45;cursor:not-allowed}
 .seg-bar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
 @media(max-width:900px){.seg-bar{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;-webkit-overflow-scrolling:touch}}
 .tbl-wrap{overflow-x:auto}
+.btn-xs{padding:5px 8px;font-size:11px}
+.draft-search{background:var(--surface-2);border:1px solid var(--border-strong);border-radius:8px;padding:7px 11px;font-size:12.5px;color:var(--text);min-width:200px}
+.draft-search:focus{outline:none;border-color:var(--accent)}
+.draft-link{display:inline-flex;align-items:center;gap:5px;color:var(--accent);font-weight:600;text-decoration:none;white-space:nowrap}
+.draft-link:hover{text-decoration:underline}
+.draft-link svg{width:13px;height:13px;flex:none}
+.draft-login{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.draft-user{font-size:12.5px}
+.draft-pw{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--surface-2);padding:2px 7px;border-radius:6px}
+.draft-tbl td{vertical-align:top}
+@media(max-width:700px){
+ .draft-tbl thead{display:none}
+ .draft-tbl,.draft-tbl tbody,.draft-tbl tr,.draft-tbl td{display:block;width:100%;min-width:0!important;box-sizing:border-box}
+ .draft-tbl tr{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;position:relative}
+ .draft-tbl td{border:none!important;padding:3px 0!important}
+ .draft-tbl td:first-child{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-3);padding-right:80px!important}
+ .draft-tbl td:last-child{position:absolute;top:8px;right:10px;width:auto}
+ .draft-link{white-space:normal;overflow-wrap:anywhere}
+ .draft-search{min-width:0;flex:1}
+}
 table.tbl{width:100%;border-collapse:collapse;min-width:560px}
 .tbl th{font-size:12px;font-weight:600;color:var(--text-3);
   text-align:left;padding:11px 14px;border-bottom:1px solid var(--border)}
@@ -594,6 +614,7 @@ body.sheet-open{position:fixed;left:0;right:0;width:100%}
       <section class="page" id="page-plan"></section>
       <section class="page" id="page-clients"></section>
       <section class="page" id="page-keyring"></section>
+      <section class="page" id="page-drafts"></section>
       <section class="page" id="page-care"></section>
       <section class="page" id="page-deploys"></section>
       <section class="page" id="page-reports"></section>
@@ -831,11 +852,11 @@ function looksLikeSecret(s){if(!s)return false;
    app auth", which has not been true since L-DEV-012.
    ================================================================ */
 let sb=null;
-let DATA={clients:[],team:[],items:[],hist:[],comments:[],links:[],access:[],props:[],recurring:[],deploys:[],ranks:[],weekly:[],alerts:[],
+let DATA={clients:[],team:[],items:[],hist:[],comments:[],links:[],access:[],props:[],recurring:[],deploys:[],ranks:[],weekly:[],alerts:[],drafts:[],
  checks:[],blogs:[],mreports:[],seo:[]};
 const TBL={dev_items:'items',dev_stage_history:'hist',dev_item_comments:'comments',dev_item_links:'links',
  dev_client_access:'access',dev_properties:'props',dev_recurring:'recurring',dev_deploys:'deploys',dev_seo_ranks:'ranks',dev_weekly_plan:'weekly',
- dev_daily_checks:'checks',dev_blog_posts:'blogs',dev_month_report:'mreports',dev_seo_clients:'seo'};
+ dev_daily_checks:'checks',dev_blog_posts:'blogs',dev_month_report:'mreports',dev_seo_clients:'seo',dev_drafts:'drafts'};
 let _seq=5000;
 
 const ACTOR_TABLES=['dev_weekly_plan','dev_items'];
@@ -1074,8 +1095,13 @@ function seedData(){
    });
   }
  });
+ const drafts=[
+  {id:1101,client_id:9001,name:'Homepage redesign v2',url:'https://example-draft-one.vercel.app',host:'vercel',status:'review',test_username:'demo@test.lk',test_password:'Demo1234',notes:'Client to sign off by Friday',created_by:'HIRAN',updated_at:d(-1)+'T05:00:00Z'},
+  {id:1102,client_id:9002,name:'Booking flow prototype',url:'https://example.github.io/booking-proto',host:'github pages',status:'draft',test_username:null,test_password:null,notes:null,created_by:'KISHINI',updated_at:d(-3)+'T05:00:00Z'},
+  {id:1103,client_id:null,name:'BB internal demo',url:'https://example-bb-demo.vercel.app',host:'vercel',status:'draft',test_username:'admin',test_password:'0000',notes:'PIN login',created_by:'HIRAN',updated_at:d(-6)+'T05:00:00Z'}
+ ];
  return {clients,team,items,hist,comments,links,access,props,recurring,deploys,ranks,weekly,alerts:[],
-  checks,blogs,mreports,seo};
+  checks,blogs,mreports,seo,drafts};
 }
 
 /* ---------- live loader ---------- */
@@ -1094,7 +1120,7 @@ async function fetchAll(){
  if(MODE==='demo'){DATA=seedData();LOAD_FAILED=[];return;}
  LOAD_FAILED=[];
  const q=(t,sel,mod)=>{let x=sb.from(t).select(sel);if(mod)x=mod(x);return x.then(r=>{if(r.error){console.warn('load '+t,r.error.message);LOAD_FAILED.push(t);return [];}return r.data||[];});};
- const [clients,team,items,hist,comments,links,access,props,recurring,deploys,ranks,weekly,checks,blogs,mreports,seo,alerts]=await Promise.all([
+ const [clients,team,items,hist,comments,links,access,props,recurring,deploys,ranks,weekly,checks,blogs,mreports,seo,alerts,drafts]=await Promise.all([
   /* deliberate: never select mrr/package/health - the dev role must not see client money */
   q('clients','id,name,industry,client_type',x=>x.order('name')),
   q('team_members','id,name,role,active'),
@@ -1112,9 +1138,10 @@ async function fetchAll(){
   q('dev_blog_posts','*',x=>x.order('slot')),
   q('dev_month_report','*'),
   q('dev_seo_clients','*',x=>x.eq('active',true)),
-  q('agent_alerts','*',x=>x.or('system.eq.dev,system.eq.all').order('created_at',{ascending:false}).limit(50))
+  q('agent_alerts','*',x=>x.or('system.eq.dev,system.eq.all').order('created_at',{ascending:false}).limit(50)),
+  q('dev_drafts','*',x=>x.order('updated_at',{ascending:false}))
  ]);
- DATA={clients,team,items,hist,comments,links,access,props,recurring,deploys,ranks,weekly,checks,blogs,mreports,seo,alerts};
+ DATA={clients,team,items,hist,comments,links,access,props,recurring,deploys,ranks,weekly,checks,blogs,mreports,seo,alerts,drafts};
 }
 
 /* ---------- THE CARE ENGINE: recurring templates spawn cards ----------
@@ -1178,12 +1205,13 @@ const NAV=[
  {key:'clients',label:'Clients',icon:'user',sec:'Clients'},
  {key:'monthly',label:'Monthly',icon:'cal',sec:'Clients'},
  {key:'keyring',label:'Keyring',icon:'key',sec:'Clients'},
+ {key:'drafts',label:'Drafts',icon:'link',sec:'Clients'},
  {key:'care',label:'Care',icon:'wrench',sec:'Operations'},
  {key:'deploys',label:'Deploys',icon:'rocket',sec:'Operations'},
  {key:'reports',label:'Reports',icon:'chart',sec:'Operations'},
  {key:'system',label:'System',icon:'pulse',sec:'System'}
 ];
-const TITLES={today:'Today',board:'Work Board',daily:'Daily Checks',monthly:'Monthly',plan:'Weekly Plan',clients:'Clients',keyring:'The Keyring',care:'Care',deploys:'Deploys',reports:'Reports',system:'System'};
+const TITLES={today:'Today',board:'Work Board',daily:'Daily Checks',monthly:'Monthly',plan:'Weekly Plan',clients:'Clients',keyring:'The Keyring',drafts:'Drafts',care:'Care',deploys:'Deploys',reports:'Reports',system:'System'};
 function pageAllowed(pg){return !!TITLES[pg];}
 
 function renderLogin(){
@@ -1322,6 +1350,7 @@ const PAGE_HEAD={
  daily:{k:'Work',t:'Daily Checks',s:'Every site and system we look after, checked morning, midday and evening.'},
  monthly:{k:'Clients',t:'The Month',s:'Blog posts due and the client report, ticked as they are done.'},
  keyring:{k:'Clients',t:'The Keyring',s:'What access we hold for each client, and what is still missing.'},
+ drafts:{k:'Clients',t:'Drafts',s:'Every temporary draft, preview and demo link in one place, with its test login.'},
  care:{k:'Operations',t:'Care',s:'Recurring upkeep and the health of every site and system.'},
  deploys:{k:'Operations',t:'Deploys',s:'Every release, logged with a rollback pointer you can undo.'},
  reports:{k:'Operations',t:'Reports',s:'Client receipts and the true time cost of the work.'},
@@ -1976,6 +2005,109 @@ function openClient(id){
  '<div class="card mt"><div class="card-h"><h3>Done in the last 30 days ('+done30.length+')</h3><span class="sp"><button class="btn-ghost btn-sm" onclick="closeModal();go(\'reports\')">Monthly report</button></span></div><div class="card-b">'+
   (done30.length?'<div class="hlist">'+mapSafe(done30,it=>'<div class="hrow"><span class="health-dot green"></span><div class="grow"><b>'+esc(it.client_note||it.title)+'</b><small>'+esc(fmtDate(String(it.completed_at).slice(0,10)))+'</small></div></div>')+'</div>':'<div class="empty-sub">Nothing completed yet this month</div>')+'</div></div>'+
  '</div><div class="modal-f"><button class="btn-ghost" onclick="closeModal()">Close</button></div>',true);
+}
+
+/* ================================================================
+   DRAFTS (20 Nov 2026) - temporary draft / preview / demo links.
+   L-DEV-020: the ONE deliberate exception to "never store credentials".
+   TEST logins for throwaway draft builds only, approved by Thulaib.
+   Real client access stays in the Keyring, as WHERE it lives, never the secret.
+   Passwords render masked and are only revealed or copied on a tap.
+   ================================================================ */
+const DRAFT_STATUSES=[
+ {key:'draft',label:'Draft',cls:'neutral'},{key:'review',label:'With client',cls:'amber'},
+ {key:'approved',label:'Approved',cls:'green'},{key:'live',label:'Live',cls:'blue'},{key:'archived',label:'Archived',cls:'neutral'}];
+const DRAFT_HOSTS=['vercel','github pages','railway','netlify','other'];
+let DRAFT_Q='',DRAFT_SHOW_ARCHIVED=false;
+function draftStatus(k){return DRAFT_STATUSES.find(x=>x.key===k)||DRAFT_STATUSES[0];}
+function draftHostOf(url){const u=String(url||'').toLowerCase();
+ return u.indexOf('vercel.app')>-1?'vercel':u.indexOf('github.io')>-1?'github pages':u.indexOf('railway.app')>-1?'railway':u.indexOf('netlify.app')>-1?'netlify':'other';}
+function safeUrl(u){u=String(u||'').trim();if(!u)return '';if(/^[a-z][a-z0-9+.-]*:(?!\d)/i.test(u)&&!/^https?:\/\//i.test(u))return '';if(!/^https?:\/\//i.test(u))u='https://'+u;return /^https?:\/\/[^\s"'<>]+$/i.test(u)?u:'';}
+function shortUrl(u){return String(u||'').replace(/^https?:\/\//i,'').replace(/\/$/,'');}
+function renderDrafts(){
+ const el=document.getElementById('page-drafts');
+ const all=(DATA.drafts||[]);
+ const q=DRAFT_Q.trim().toLowerCase();
+ const rows=all.filter(d=>(DRAFT_SHOW_ARCHIVED||d.status!=='archived')&&
+  (!q||[d.name,d.url,d.notes,d.host,clientName(d.client_id)].join(' ').toLowerCase().indexOf(q)>-1));
+ const n=k=>all.filter(d=>d.status===k).length;
+ el.innerHTML=
+ '<div class="stat-grid">'+
+ '<div class="stat-card"><div class="stat-lbl">Links stored</div><div class="stat-val accent">'+all.filter(d=>d.status!=='archived').length+'</div></div>'+
+ '<div class="stat-card"><div class="stat-lbl">Drafts</div><div class="stat-val">'+n('draft')+'</div></div>'+
+ '<div class="stat-card"><div class="stat-lbl">With client</div><div class="stat-val amber">'+n('review')+'</div><div class="stat-note">waiting on feedback</div></div>'+
+ '<div class="stat-card"><div class="stat-lbl">Approved / live</div><div class="stat-val green">'+(n('approved')+n('live'))+'</div></div>'+
+ '</div>'+
+ '<div class="card"><div class="card-h"><h3>All draft links</h3><span class="sp" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+ '<input id="draftQ" class="draft-search" placeholder="Search client, name or link" value="'+esc(DRAFT_Q)+'" oninput="DRAFT_Q=this.value;renderDrafts();var i=document.getElementById(\'draftQ\');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}">'+
+ '<label class="empty-sub" style="display:flex;gap:5px;align-items:center;cursor:pointer"><input type="checkbox" '+(DRAFT_SHOW_ARCHIVED?'checked':'')+' onchange="DRAFT_SHOW_ARCHIVED=this.checked;renderDrafts()"> Archived</label>'+
+ '<button class="btn-primary btn-sm" onclick="openDraft(null)">'+I.plus+' Add link</button></span></div>'+
+ '<div class="card-b tbl-wrap"><table class="tbl draft-tbl"><thead><tr><th>Client</th><th>What</th><th>Link</th><th>Status</th><th>Test login</th><th></th></tr></thead><tbody>'+
+ (rows.length?mapSafe(rows,d=>{
+  const st=draftStatus(d.status);const url=safeUrl(d.url);
+  const login=(d.test_username||d.test_password)?
+   '<div class="draft-login">'+(d.test_username?'<span class="draft-user">'+esc(d.test_username)+'</span>':'')+
+   (d.test_password?'<span class="draft-pw" id="dpw'+d.id+'" data-shown="0">&bull;&bull;&bull;&bull;&bull;&bull;</span>'+
+    '<button class="btn-ghost btn-xs" title="Show" onclick="toggleDraftPw('+d.id+')">Show</button>'+
+    '<button class="btn-ghost btn-xs" title="Copy password" onclick="copyDraftPw('+d.id+')">'+I.copy+'</button>':'')+'</div>'
+   :'<span class="empty-sub">none</span>';
+  return '<tr><td>'+esc(clientName(d.client_id))+'</td>'+
+  '<td><div style="font-weight:600">'+esc(d.name)+'</div>'+(d.notes?'<div class="empty-sub">'+esc(d.notes)+'</div>':'')+'</td>'+
+  '<td>'+(url?'<a class="draft-link" href="'+esc(url)+'" target="_blank" rel="noopener">'+I.link+' '+esc(shortUrl(url))+'</a>':esc(d.url))+
+   '<div class="empty-sub">'+esc(d.host||draftHostOf(d.url))+'</div></td>'+
+  '<td><span class="badge '+st.cls+'">'+esc(st.label)+'</span></td>'+
+  '<td>'+login+'</td>'+
+  '<td style="white-space:nowrap"><button class="btn-ghost btn-xs" title="Copy link" onclick="copyDraftLink('+d.id+')">'+I.copy+'</button> '+
+  '<button class="btn-ghost btn-xs" title="Edit" onclick="openDraft('+d.id+')">'+I.edit+'</button></td></tr>';
+ }):'<tr><td colspan="6"><div class="empty-state"><div class="empty-title">'+(all.length?'Nothing matches':'No draft links yet')+'</div><div class="empty-sub">Add the first one with Add link.</div></div></td></tr>')+
+ '</tbody></table></div></div>'+
+ '<div class="empty-sub mt">'+I.shield+' Test logins for draft builds only. Real client access goes in the Keyring, never here.</div>';
+}
+function copyText(t,msg){try{navigator.clipboard.writeText(t);toast(msg||'Copied');}catch(e){toast('Copy failed, select it manually');}}
+function toggleDraftPw(id){const d=(DATA.drafts||[]).find(x=>Number(x.id)===Number(id));const s=document.getElementById('dpw'+id);if(!d||!s)return;
+ const on=s.dataset.shown==='1';s.textContent=on?'••••••':d.test_password;s.dataset.shown=on?'0':'1';
+ const b=s.nextElementSibling;if(b)b.textContent=on?'Show':'Hide';}
+function copyDraftLink(id){const d=(DATA.drafts||[]).find(x=>Number(x.id)===Number(id));if(d)copyText(safeUrl(d.url)||d.url,'Link copied');}
+function copyDraftPw(id){const d=(DATA.drafts||[]).find(x=>Number(x.id)===Number(id));if(d&&d.test_password)copyText(d.test_password,'Password copied');}
+function openDraft(id){
+ const d=id?(DATA.drafts||[]).find(x=>Number(x.id)===Number(id)):null;
+ const v=k=>esc(d&&d[k]!=null?d[k]:'');
+ openModal(modalHead(d?'Edit draft link':'Add draft link')+
+ '<div class="modal-b">'+
+ '<div class="frm-row"><div class="fld"><label>Client</label><select id="drClient"><option value="">BB Internal / not a client</option>'+
+  (DATA.clients||[]).map(c=>'<option value="'+c.id+'"'+(d&&Number(d.client_id)===Number(c.id)?' selected':'')+'>'+esc(c.name)+'</option>').join('')+'</select></div>'+
+ '<div class="fld"><label>Status</label><select id="drStatus">'+DRAFT_STATUSES.map(x=>'<option value="'+x.key+'"'+((d?d.status:'draft')===x.key?' selected':'')+'>'+x.label+'</option>').join('')+'</select></div></div>'+
+ '<div class="fld"><label>Name</label><input id="drName" value="'+v('name')+'" placeholder="e.g. Homepage redesign v2"></div>'+
+ '<div class="frm-row"><div class="fld"><label>Link</label><input id="drUrl" value="'+v('url')+'" placeholder="https://..."></div>'+
+ '<div class="fld"><label>Hosted on</label><select id="drHost"><option value="">Auto-detect</option>'+DRAFT_HOSTS.map(h=>'<option'+(d&&d.host===h?' selected':'')+'>'+h+'</option>').join('')+'</select></div></div>'+
+ '<div class="frm-row"><div class="fld"><label>Test username (optional)</label><input id="drUser" value="'+v('test_username')+'" autocomplete="off"></div>'+
+ '<div class="fld"><label>Test password (optional)</label><input id="drPw" value="'+v('test_password')+'" autocomplete="new-password"></div></div>'+
+ '<div class="fld"><label>Notes</label><input id="drNotes" value="'+v('notes')+'" placeholder="What to look at, feedback due, etc."></div>'+
+ '<div class="empty-sub">'+I.shield+' Test logins for draft builds only. Never a real client account.</div>'+
+ '</div><div class="modal-f">'+(d?'<button class="btn-ghost" style="margin-right:auto" onclick="deleteDraft('+d.id+')">'+I.trash+' Delete</button>':'')+
+ '<button class="btn-ghost" onclick="closeModal()">Cancel</button>'+
+ '<button class="btn-primary" onclick="saveDraft('+(d?d.id:'null')+')">'+I.check+' Save</button></div>');
+}
+async function saveDraft(id){
+ const g=x=>document.getElementById(x).value.trim();
+ const name=g('drName');const url=safeUrl(g('drUrl'));
+ if(!name){toast('Give it a name');return;}
+ if(!url){toast('That link does not look right');return;}
+ const cid=g('drClient');
+ const row={client_id:cid?Number(cid):null,name,url,host:g('drHost')||draftHostOf(url),status:g('drStatus'),
+  test_username:g('drUser')||null,test_password:g('drPw')||null,notes:g('drNotes')||null,
+  updated_by:CURRENT?CURRENT.name:null,updated_at:nowISO()};
+ try{
+  if(id)await DBW.update('dev_drafts',id,row);
+  else{row.created_by=CURRENT?CURRENT.name:null;await DBW.insert('dev_drafts',row);}
+  closeModal();toast(id?'Draft link updated':'Draft link added');renderPageRefresh();
+ }catch(e){toast('Save failed: '+esc(e&&e.message||''));}
+}
+async function deleteDraft(id){
+ const d=(DATA.drafts||[]).find(x=>Number(x.id)===Number(id));
+ if(!d||!confirm('Delete "'+d.name+'"? Archive it instead if you might need it again.'))return;
+ try{await DBW.del('dev_drafts',id);closeModal();toast('Deleted');renderPageRefresh();}
+ catch(e){toast('Delete failed: '+esc(e&&e.message||''));}
 }
 
 /* ================================================================
@@ -2637,7 +2769,7 @@ async function cyclePlan(id){
 }
 async function delPlan(id){try{await DBW.del('dev_weekly_plan',id);closeModal();toast('Removed');renderPlan();}catch(err){toast('Delete failed');}}
 
-const RENDERERS={today:renderToday,board:renderBoard,daily:renderDaily,monthly:renderMonthly,plan:renderPlan,clients:renderClients,keyring:renderKeyring,care:renderCare,deploys:renderDeploys,reports:renderReports,system:renderSystem};
+const RENDERERS={today:renderToday,board:renderBoard,daily:renderDaily,monthly:renderMonthly,plan:renderPlan,clients:renderClients,keyring:renderKeyring,drafts:renderDrafts,care:renderCare,deploys:renderDeploys,reports:renderReports,system:renderSystem};
 
 /* ================================================================
    SECTION 11.5 - SMART LAYER: next best action, the Dev Sentinel,
@@ -2872,6 +3004,14 @@ async function runSelfTest(opts){
   const accN=DATA.access.length;
   await DBW.insert('dev_client_access',{client_id:9004,access_type:'gsc',status:'requested',updated_by:'selftest'});
   ok('Keyring write path works',DATA.access.length===accN+1);
+  /* ---- Drafts ---- */
+  renderDrafts();
+  ok('Drafts page renders every non-archived link',document.querySelectorAll('#page-drafts .draft-tbl tbody tr').length===(DATA.drafts||[]).filter(function(d){return d.status!=='archived';}).length);
+  ok('Draft passwords render masked, never in plain text',(DATA.drafts||[]).filter(function(d){return d.test_password;}).every(function(d){return document.getElementById('page-drafts').textContent.indexOf(d.test_password)===-1;}));
+  ok('Draft links refuse javascript: URLs',safeUrl('javascript:alert(1)')===''&&safeUrl('site.vercel.app')==='https://site.vercel.app');
+  const drN=(DATA.drafts||[]).length;
+  await DBW.insert('dev_drafts',{name:'selftest',url:'https://x.vercel.app',status:'draft',created_by:'selftest'});
+  ok('Drafts write path works',DATA.drafts.length===drN+1);
   /* ---- A5 reports ---- */
   REP_CLIENT='9002';REP_MONTH=todayISO().slice(0,7);
   const repHtml=repClientHtml();
